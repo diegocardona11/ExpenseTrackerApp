@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp) // code generator (replaces kapt)
 }
 
 android {
@@ -53,4 +54,7 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    implementation("androidx.room:room-runtime:2.6.1") // main database library
+    implementation("androidx.room:room-ktx:2.6.1")     // helps with Kotlin
+    ksp("androidx.room:room-compiler:2.6.1") // generates database code
 }
