@@ -57,4 +57,9 @@ dependencies {
     implementation("androidx.room:room-runtime:2.6.1") // main database library
     implementation("androidx.room:room-ktx:2.6.1")     // helps with Kotlin
     ksp("androidx.room:room-compiler:2.6.1") // generates database code
+    // Room (database)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
 }
