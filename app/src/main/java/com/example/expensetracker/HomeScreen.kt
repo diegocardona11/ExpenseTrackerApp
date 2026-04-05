@@ -29,6 +29,7 @@ import com.example.expensetracker.data.Expense
 fun HomeScreen(
     expenses: List<Expense>,
     onAddExpense: (String, Double) -> Unit,
+    onUpdateExpense: (Expense) -> Unit,
     onDeleteExpense: (Expense) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -202,9 +203,17 @@ fun HomeScreen(
                                 errorMessage = "Amount must be greater than 0"
                             } else {
 
-                                //If editing delete old expense first, then add the new updated version
-                                editingExpense?.let {
-                                    onDeleteExpense(it)
+                                if (editingExpense == null) {
+                                    //  Add new expense
+                                    onAddExpense(dialogTitle, amount)
+                                } else {
+                                    // Update existing expense
+                                    onUpdateExpense(
+                                        editingExpense!!.copy(
+                                            title = dialogTitle,
+                                            amount = amount
+                                        )
+                                    )
                                 }
 
                                 // Add the new or updated expense

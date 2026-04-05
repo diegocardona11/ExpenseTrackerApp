@@ -44,4 +44,9 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
             dao.deleteExpense(expenseId)
         }
     }
+    fun updateExpense(expense: Expense) {
+        viewModelScope.launch {
+            dao.updateExpense(expense)
+        }
+    }
 }

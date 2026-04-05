@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
+import androidx.room.Update
 
 // This file is basically the Expense Helper
 // It contains the functions that talk to the database
@@ -14,6 +15,10 @@ interface ExpenseDao {
     // the suspend makes it so it runs safely in the background with it not bugging
     @Insert
     suspend fun insertExpense(expense: Expense)
+
+    // This updates an existing expense in the database
+    @Update
+    suspend fun updateExpense(expense: Expense)
 
     // Gets all expenses from the database
     // ORDER BY timestamp DESC means newest expenses come first
