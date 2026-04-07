@@ -3,21 +3,23 @@ package com.example.expensetracker.data
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-// This tells Room that its a database table
+// This tells Room that this class is a database table
 @Entity(tableName = "expenses")
 data class Expense(
 
     // Unique ID for each expense
-    // Room will auto-generate this
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
 
-    // What the expense on
+    // What the expense was for
     val title: String,
 
-    // the amount spent
+    // How much money was spent
     val amount: Double,
 
-    // auto sets a time when it was created
+    // Category like Food, Gas, Entertainment, etc.
+    val category: String,
+
+    // Automatically saves the time the expense was created
     val timestamp: Long = System.currentTimeMillis()
 )

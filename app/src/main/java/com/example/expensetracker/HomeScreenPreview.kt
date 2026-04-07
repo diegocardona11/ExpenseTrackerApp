@@ -1,5 +1,7 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.example.expensetracker
+
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -18,12 +20,13 @@ fun HomeScreenPreview() {
             topBar = {
                 TopAppBar(title = { Text("Expense Tracker") })
             }
-        ) { padding ->
+        ) { innerPadding ->
             HomeScreen(
                 expenses = emptyList(),
-                onAddExpense = { _, _ -> },
-                onDeleteExpense = {},
-                modifier = Modifier.padding(padding)
+                onAddExpense = { _, _, _ -> },
+                onUpdateExpense = { },
+                onDeleteExpense = { },
+                modifier = Modifier.padding(innerPadding)
             )
         }
     }

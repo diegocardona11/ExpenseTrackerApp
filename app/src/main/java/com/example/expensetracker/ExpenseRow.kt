@@ -1,4 +1,5 @@
 package com.example.expensetracker
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,7 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.expensetracker.data.Expense
 
-//One row/card in the expense list Shows title, amount, Edit button, Delete button
+// One row in the expense list
+// Shows title, category, amount, and buttons
 @Composable
 fun ExpenseRow(
     expense: Expense,
@@ -31,20 +33,30 @@ fun ExpenseRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            //Left side: expense info
+
+            // LEFT SIDE: Expense info
             Column {
+
+                // Title (ex: "Lunch")
                 Text(
                     expense.title,
                     style = MaterialTheme.typography.bodyLarge
                 )
 
+                // Category (ex: "Food")
+                Text(
+                    expense.category,
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                // Amount (ex: $12.50)
                 Text(
                     "$${"%.2f".format(expense.amount)}",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
 
-            //Right side: small action buttons
+            // RIGHT SIDE: buttons
             Row {
                 TextButton(onClick = onEdit) {
                     Text("Edit")

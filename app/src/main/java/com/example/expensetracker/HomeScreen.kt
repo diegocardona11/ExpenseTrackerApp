@@ -1,4 +1,5 @@
 package com.example.expensetracker
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,30 +29,35 @@ import com.example.expensetracker.data.Expense
 @Composable
 fun HomeScreen(
     expenses: List<Expense>,
-    onAddExpense: (String, Double) -> Unit,
+    onAddExpense: (String, Double, String) -> Unit,
     onUpdateExpense: (Expense) -> Unit,
     onDeleteExpense: (Expense) -> Unit,
     modifier: Modifier = Modifier
 ) {
 
-    //Compute the total of all expenses.
+    // Adds up all expense amounts for the total card
     val total = expenses.sumOf { it.amount }
 
-    //These are local UI state variables.
-
-    // Title typed into the Add/Edit popup
+    // Title typed into the popup
     var dialogTitle by remember { mutableStateOf("") }
 
-    // Amount typed into the Add/Edit popup
+    // Amount typed into the popup
     var dialogAmount by remember { mutableStateOf("") }
 
-    // Red validation message shown inside the popup if input is bad
+    // Category typed into the popup
+    var dialogCategory by remember { mutableStateOf("Food") }
+
+    // Error message shown if the input is bad
     var errorMessage by remember { mutableStateOf("") }
 
+    // If this is null, we are adding a new expense
+    // If this has a value, we are editing an old one
     var editingExpense by remember { mutableStateOf<Expense?>(null) }
 
+    // This stores the expense the user wants to delete
     var deleteTarget by remember { mutableStateOf<Expense?>(null) }
 
+    // Controls whether the add/edit popup is visible
     var showEditorDialog by remember { mutableStateOf(false) }
 
     Column(
@@ -59,7 +65,7 @@ fun HomeScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        //Top summary card showing total expenses.
+        // Top card showing the total amount
         Card(
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -80,11 +86,13 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Add button opens the popup with empty fields
         Button(
             onClick = {
                 editingExpense = null
                 dialogTitle = ""
                 dialogAmount = ""
+                dialogCategory = "Food"
                 errorMessage = ""
                 showEditorDialog = true
             },
@@ -110,16 +118,17 @@ fun HomeScreen(
                     ExpenseRow(
                         expense = expense,
 
-                        //Edit button behavior:
+                        // Edit button loads old values into the popup
                         onEdit = {
                             editingExpense = expense
                             dialogTitle = expense.title
                             dialogAmount = expense.amount.toString()
+                            dialogCategory = expense.category
                             errorMessage = ""
                             showEditorDialog = true
                         },
 
-                        //Delete button behavior:
+                        // Delete button opens the confirmation popup
                         onDelete = {
                             deleteTarget = expense
                         }
@@ -133,13 +142,11 @@ fun HomeScreen(
         if (showEditorDialog) {
             AlertDialog(
                 onDismissRequest = {
-                    // User tapped outside or dismissed dialog
                     showEditorDialog = false
                     errorMessage = ""
                 },
 
                 title = {
-                    // Dynamic title depending on mode
                     Text(
                         if (editingExpense == null) "Add Expense"
                         else "Edit Expense"
@@ -148,6 +155,7 @@ fun HomeScreen(
 
                 text = {
                     Column {
+                        // Expense title input
                         OutlinedTextField(
                             value = dialogTitle,
                             onValueChange = { dialogTitle = it },
@@ -157,6 +165,7 @@ fun HomeScreen(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
+                        // Amount input
                         OutlinedTextField(
                             value = dialogAmount,
                             onValueChange = { dialogAmount = it },
@@ -167,7 +176,17 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        // If there's an error, show it in red under the fields.
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Category input
+                        OutlinedTextField(
+                            value = dialogCategory,
+                            onValueChange = { dialogCategory = it },
+                            label = { Text("Category") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        // Show validation error in red
                         if (errorMessage.isNotBlank()) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
@@ -181,18 +200,11 @@ fun HomeScreen(
                 confirmButton = {
                     TextButton(
                         onClick = {
-
                             val amount = dialogAmount.toDoubleOrNull()
                             val decimalPart = dialogAmount.substringAfter(".", "")
                             val hasTooManyDecimals = decimalPart.length > 2
 
-                            /*
-                                Validation rules in order:
-                                1. Title can't be blank
-                                2. Amount must be a real number
-                                3. Max 2 decimal places
-                                4. Must be greater than 0
-                            */
+                            // Basic validation
                             if (dialogTitle.isBlank()) {
                                 errorMessage = "Please enter a title"
                             } else if (amount == null) {
@@ -201,27 +213,28 @@ fun HomeScreen(
                                 errorMessage = "Use no more than 2 decimal places"
                             } else if (amount <= 0) {
                                 errorMessage = "Amount must be greater than 0"
+                            } else if (dialogCategory.isBlank()) {
+                                errorMessage = "Please enter a category"
                             } else {
 
                                 if (editingExpense == null) {
-                                    //  Add new expense
-                                    onAddExpense(dialogTitle, amount)
+                                    // Add a brand new expense
+                                    onAddExpense(dialogTitle, amount, dialogCategory)
                                 } else {
-                                    // Update existing expense
+                                    // Update the existing expense
                                     onUpdateExpense(
                                         editingExpense!!.copy(
                                             title = dialogTitle,
-                                            amount = amount
+                                            amount = amount,
+                                            category = dialogCategory
                                         )
                                     )
                                 }
 
-                                // Add the new or updated expense
-                                onAddExpense(dialogTitle, amount)
-
-                                // Reset popup state after success
+                                // Reset popup after success
                                 dialogTitle = ""
                                 dialogAmount = ""
+                                dialogCategory = "Food"
                                 errorMessage = ""
                                 editingExpense = null
                                 showEditorDialog = false
@@ -238,7 +251,6 @@ fun HomeScreen(
                 dismissButton = {
                     TextButton(
                         onClick = {
-                            // Cancel closes popup and clears mode/errors
                             showEditorDialog = false
                             errorMessage = ""
                             editingExpense = null
@@ -250,6 +262,7 @@ fun HomeScreen(
             )
         }
 
+        // Delete confirmation popup
         deleteTarget?.let { expense ->
             AlertDialog(
                 onDismissRequest = {
@@ -267,7 +280,6 @@ fun HomeScreen(
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            // Actually delete it now
                             onDeleteExpense(expense)
                             deleteTarget = null
                         }
