@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.example.expensetracker
 
 import androidx.compose.foundation.layout.Column
@@ -12,7 +14,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -25,6 +32,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.expensetracker.data.Expense
+
+// List of categories for the dropdown
+val categories = listOf(
+    "Housing",
+    "Food",
+    "Transportation",
+    "Gas",
+    "Bills",
+    "Shopping",
+    "Entertainment",
+    "Health",
+    "Education",
+    "Travel",
+    "Savings",
+    "Other"
+)
 
 @Composable
 fun HomeScreen(
@@ -44,7 +67,7 @@ fun HomeScreen(
     // Amount typed into the popup
     var dialogAmount by remember { mutableStateOf("") }
 
-    // Category typed into the popup
+    // Category selected in the popup
     var dialogCategory by remember { mutableStateOf("Food") }
 
     // Error message shown if the input is bad
@@ -178,13 +201,44 @@ fun HomeScreen(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // Category input
-                        OutlinedTextField(
-                            value = dialogCategory,
-                            onValueChange = { dialogCategory = it },
-                            label = { Text("Category") },
+                        // Category Dropdown
+                        var expanded by remember { mutableStateOf(false) }
+
+                        ExposedDropdownMenuBox(
+                            expanded = expanded,
+                            onExpandedChange = { expanded = it },
                             modifier = Modifier.fillMaxWidth()
-                        )
+                        ) {
+                            OutlinedTextField(
+                                value = dialogCategory,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Category") },
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                                },
+                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                                modifier = Modifier
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                    .fillMaxWidth()
+                            )
+
+                            ExposedDropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                categories.forEach { category ->
+                                    DropdownMenuItem(
+                                        text = { Text(text = category) },
+                                        onClick = {
+                                            dialogCategory = category
+                                            expanded = false
+                                        },
+                                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                    )
+                                }
+                            }
+                        }
 
                         // Show validation error in red
                         if (errorMessage.isNotBlank()) {
