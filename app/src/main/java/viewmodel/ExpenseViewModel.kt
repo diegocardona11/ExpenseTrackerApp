@@ -2,7 +2,7 @@ package com.example.expensetracker.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope // this lets us run code in background safely
+import androidx.lifecycle.viewModelScope
 import com.example.expensetracker.data.Expense
 import com.example.expensetracker.data.ExpenseDatabase
 import kotlinx.coroutines.flow.SharingStarted
@@ -10,49 +10,46 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-// This is the "brain" of the app
-// It connects the UI to the database
+// ViewModel is our brain
+// It talks to the database and gives the UI the data it needs
 class ExpenseViewModel(application: Application) : AndroidViewModel(application) {
 
-    // This gets access to the database + helper (DAO)
+    // allows acess to the database plus the DAO whish is the helper
     private val dao = ExpenseDatabase.getDatabase(application).expenseDao()
 
-    // This holds the list of expenses for the UI
-    // It automatically updates when the database changes
+    // This is the list of expenses the UI will display
+    // StateFlow updates automatically when the database changes
     val expenses: StateFlow<List<Expense>> =
         dao.getAllExpenses().stateIn(
-            scope = viewModelScope, // runs safely in background
+            scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList() // starts empty
+            initialValue = emptyList()
         )
 
-    // ADD EXPENSE
-    // Saves a new expense into the database
+    // saves an expense to the database
     fun addExpense(title: String, amount: Double, category: String) {
         viewModelScope.launch {
             dao.insertExpense(
                 Expense(
                     title = title,
                     amount = amount,
-                    category = category // new field we added
+                    category = category
                 )
             )
         }
     }
 
-    // DELETE EXPENSE
-    // Deletes an expense using its ID
-    fun deleteExpense(expenseId: Int) {
-        viewModelScope.launch {
-            dao.deleteExpense(expenseId)
-        }
-    }
-
-    // UPDATE EXPENSE
-    // Updates an existing expense (used when editing)
+    // updates an existing expense in the database
     fun updateExpense(expense: Expense) {
         viewModelScope.launch {
             dao.updateExpense(expense)
+        }
+    }
+
+    // deletes an expense from the database
+    fun deleteExpense(expenseId: Int) {
+        viewModelScope.launch {
+            dao.deleteExpense(expenseId)
         }
     }
 }

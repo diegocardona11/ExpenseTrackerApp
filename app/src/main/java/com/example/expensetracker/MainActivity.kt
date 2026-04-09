@@ -3,78 +3,67 @@
 package com.example.expensetracker
 
 import android.os.Bundle
-
-// Activity + Compose setup
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-
-// Compose layout helper
 import androidx.compose.foundation.layout.padding
-
-// Material 3 UI
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-
-// Compose state
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-
-// UI helper
 import androidx.compose.ui.Modifier
-
-// Theme + ViewModel
+import androidx.compose.ui.unit.dp
 import com.example.expensetracker.ui.theme.ExpenseTrackerTheme
 import com.example.expensetracker.viewmodel.ExpenseViewModel
+import com.example.expensetracker.viewmodel.ThemeViewModel
 
 class MainActivity : ComponentActivity() {
 
-    // This gives us access to the ViewModel
-    // The ViewModel talks to the database for us
-    private val viewModel: ExpenseViewModel by viewModels()
+    // ViewModels for managing data and theme state
+    private val expenseViewModel: ExpenseViewModel by viewModels()
+    //Them Vew Model heeps track if dark mode is on or off
+    private val themeViewModel: ThemeViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Makes the app draw nicely edge-to-edge
         enableEdgeToEdge()
 
-        // Starts the Compose UI
         setContent {
-            ExpenseTrackerTheme {
+            // Here we actually apply the them from themeViewModel based on its state
+            ExpenseTrackerTheme(darkTheme = themeViewModel.isDarkMode) {
 
-                // Gets the live list of expenses from the ViewModel
-                val expenses by viewModel.expenses.collectAsState()
+                val expenses by expenseViewModel.expenses.collectAsState()
 
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text("Expense Tracker") }
+                            title = { Text("Expense Tracker") },
+                            actions = {
+                                // here is the actual switch logic
+                                Switch(
+                                    checked = themeViewModel.isDarkMode,
+                                    onCheckedChange = { themeViewModel.toggleTheme() },
+                                    modifier = Modifier.padding(end = 16.dp)
+                                )
+                            }
                         )
                     }
                 ) { innerPadding ->
-
                     HomeScreen(
                         expenses = expenses,
-
-                        // ➕ Adds a new expense with title, amount, and category
                         onAddExpense = { title, amount, category ->
-                            viewModel.addExpense(title, amount, category)
+                            expenseViewModel.addExpense(title, amount, category)
                         },
-
-                        // ✏️ Updates an existing expense
                         onUpdateExpense = { expense ->
-                            viewModel.updateExpense(expense)
+                            expenseViewModel.updateExpense(expense)
                         },
-
-                        // 🗑 Deletes an expense using its id
                         onDeleteExpense = { expense ->
-                            viewModel.deleteExpense(expense.id)
+                            expenseViewModel.deleteExpense(expense.id)
                         },
-
                         modifier = Modifier.padding(innerPadding)
                     )
                 }

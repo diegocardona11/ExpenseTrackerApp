@@ -6,8 +6,8 @@ import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 import androidx.room.Update
 
-// This file is basically the Expense Helper
-// It contains the functions that talk to the database
+
+// Expense helper= talks to the database
 @Dao
 interface ExpenseDao {
 
@@ -22,7 +22,7 @@ interface ExpenseDao {
 
     // Gets all expenses from the database
     // ORDER BY timestamp DESC means newest expenses come first
-    // Flow means it automatically updates when data changes
+    // Flow automatically updates when data changes
     @Query("SELECT * FROM expenses ORDER BY timestamp DESC")
     fun getAllExpenses(): Flow<List<Expense>>
 

@@ -5,14 +5,14 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-// This tells Room which tables belong to the database
+// Communicates with Room about what tables belong to the database
 @Database(
-    entities = [Expense::class], // our table
-    version = 2 // changed from 1 to 2 because we added category
+    entities = [Expense::class], // The table
+    version = 2
 )
 abstract class ExpenseDatabase : RoomDatabase() {
 
-    // This connects the database to our helper (DAO)
+    // This connects the database to the DAO (helper)
     abstract fun expenseDao(): ExpenseDao
 
     companion object {
@@ -21,21 +21,19 @@ abstract class ExpenseDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: ExpenseDatabase? = null
 
-        // This safely gives us the database
+        // This function gives us the database safely
         fun getDatabase(context: Context): ExpenseDatabase {
 
-            // If database already exists, use it
+            // If database already exists → return it
             return INSTANCE ?: synchronized(this) {
 
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     ExpenseDatabase::class.java,
-                    "expense_database"
+                    "expense_database" // Name of the database file
                 )
-                    // If the database structure changes, rebuild it
-                    // This is okay for our student project
-                    .fallbackToDestructiveMigration()
-                    .build()
+                .fallbackToDestructiveMigration(dropAllTables = true) // Wipes and rebuilds database if schema changes
+                .build()
 
                 INSTANCE = instance
                 instance
