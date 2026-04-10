@@ -2,6 +2,7 @@
 
 package com.example.expensetracker
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -83,6 +84,9 @@ fun HomeScreen(
     // Controls whether the add/edit popup is visible
     var showEditorDialog by remember { mutableStateOf(false) }
 
+    // Controls whether the advanced options are visible
+    var showAdvanced by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -117,6 +121,7 @@ fun HomeScreen(
                 dialogAmount = ""
                 dialogCategory = "Food"
                 errorMessage = ""
+                showAdvanced = false
                 showEditorDialog = true
             },
             modifier = Modifier.fillMaxWidth()
@@ -148,6 +153,7 @@ fun HomeScreen(
                             dialogAmount = expense.amount.toString()
                             dialogCategory = expense.category
                             errorMessage = ""
+                            showAdvanced = false
                             showEditorDialog = true
                         },
 
@@ -237,6 +243,27 @@ fun HomeScreen(
                                         contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                                     )
                                 }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Advanced Options toggle
+                        TextButton(
+                            onClick = { showAdvanced = !showAdvanced }
+                        ) {
+                            Text(if (showAdvanced) "Hide Advanced Options" else "Show Advanced Options")
+                        }
+
+                        // Placeholder for advanced options
+                        AnimatedVisibility(visible = showAdvanced) {
+                            Column {
+                                Text(
+                                    text = "Advanced options will be added here later.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
                             }
                         }
 
