@@ -27,13 +27,14 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         )
 
     // saves an expense to the database
-    fun addExpense(title: String, amount: Double, category: String) {
+    fun addExpense(title: String, amount: Double, category: String, budget: Double) {
         viewModelScope.launch {
             dao.insertExpense(
                 Expense(
                     title = title,
                     amount = amount,
-                    category = category
+                    category = category,
+                    budget = budget
                 )
             )
         }

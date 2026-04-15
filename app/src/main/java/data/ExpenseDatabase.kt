@@ -8,7 +8,7 @@ import androidx.room.RoomDatabase
 // Communicates with Room about what tables belong to the database
 @Database(
     entities = [Expense::class], // The table
-    version = 2
+    version = 3
 )
 abstract class ExpenseDatabase : RoomDatabase() {
 

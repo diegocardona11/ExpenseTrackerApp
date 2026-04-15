@@ -20,6 +20,9 @@ data class Expense(
     // Category like Food, Gas, Entertainment, etc.
     val category: String,
 
+    // Optional budget amount for this specific category
+    val budget: Double = 0.0,
+
     // Automatically saves the time the expense was created
     val timestamp: Long = System.currentTimeMillis()
 )

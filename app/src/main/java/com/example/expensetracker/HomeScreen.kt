@@ -3,7 +3,9 @@
 package com.example.expensetracker
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +24,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,7 +32,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.expensetracker.data.Expense
@@ -53,14 +58,17 @@ val categories = listOf(
 @Composable
 fun HomeScreen(
     expenses: List<Expense>,
-    onAddExpense: (String, Double, String) -> Unit,
+    onAddExpense: (String, Double, String, Double) -> Unit,
     onUpdateExpense: (Expense) -> Unit,
     onDeleteExpense: (Expense) -> Unit,
     modifier: Modifier = Modifier
 ) {
 
     // Adds up all expense amounts for the total card
-    val total = expenses.sumOf { it.amount }
+    val totalSpent = expenses.sumOf { it.amount }
+    
+    // Adds up all budgets set for the expenses
+    val totalBudget = expenses.sumOf { it.budget }
 
     // Title typed into the popup
     var dialogTitle by remember { mutableStateOf("") }
@@ -70,6 +78,10 @@ fun HomeScreen(
 
     // Category selected in the popup
     var dialogCategory by remember { mutableStateOf("Food") }
+
+    // Budget state for the popup
+    var isBudgetEnabled by remember { mutableStateOf(false) }
+    var dialogBudgetAmount by remember { mutableStateOf("") }
 
     // Error message shown if the input is bad
     var errorMessage by remember { mutableStateOf("") }
@@ -92,22 +104,61 @@ fun HomeScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // Top card showing the total amount
+        // Top card showing the total amount and budget
         Card(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    "This Month",
+                    "Overview",
                     style = MaterialTheme.typography.titleMedium
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                Text(
-                    "$${"%.2f".format(total)}",
-                    style = MaterialTheme.typography.headlineMedium
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            "Spent",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        Text(
+                            "$${"%.2f".format(totalSpent)}",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    if (totalBudget > 0) {
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                "Budget",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                            Text(
+                                "$${"%.2f".format(totalBudget)}",
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = if (totalSpent > totalBudget) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+                
+                if (totalBudget > 0) {
+                    val remaining = totalBudget - totalSpent
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = if (remaining >= 0) "Remaining: $${"%.2f".format(remaining)}" else "Over Budget: $${"%.2f".format(-remaining)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (remaining >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                    )
+                }
             }
         }
 
@@ -120,6 +171,8 @@ fun HomeScreen(
                 dialogTitle = ""
                 dialogAmount = ""
                 dialogCategory = "Food"
+                isBudgetEnabled = false
+                dialogBudgetAmount = ""
                 errorMessage = ""
                 showAdvanced = false
                 showEditorDialog = true
@@ -152,6 +205,8 @@ fun HomeScreen(
                             dialogTitle = expense.title
                             dialogAmount = expense.amount.toString()
                             dialogCategory = expense.category
+                            isBudgetEnabled = expense.budget > 0
+                            dialogBudgetAmount = if (expense.budget > 0) expense.budget.toString() else ""
                             errorMessage = ""
                             showAdvanced = false
                             showEditorDialog = true
@@ -197,7 +252,12 @@ fun HomeScreen(
                         // Amount input
                         OutlinedTextField(
                             value = dialogAmount,
-                            onValueChange = { dialogAmount = it },
+                            onValueChange = { 
+                                // Only allow numbers and one decimal point
+                                if (it.all { char -> char.isDigit() || char == '.' } && it.count { char -> char == '.' } <= 1) {
+                                    dialogAmount = it
+                                }
+                            },
                             label = { Text("Amount") },
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Number
@@ -255,14 +315,39 @@ fun HomeScreen(
                             Text(if (showAdvanced) "Hide Advanced Options" else "Show Advanced Options")
                         }
 
-                        // Placeholder for advanced options
+                        // Advanced options section
                         AnimatedVisibility(visible = showAdvanced) {
                             Column {
-                                Text(
-                                    text = "Advanced options will be added here later.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.secondary
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Set Budget", style = MaterialTheme.typography.bodyLarge)
+                                    Switch(
+                                        checked = isBudgetEnabled,
+                                        onCheckedChange = { isBudgetEnabled = it }
+                                    )
+                                }
+
+                                if (isBudgetEnabled) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    OutlinedTextField(
+                                        value = dialogBudgetAmount,
+                                        onValueChange = { 
+                                            // Only allow numbers and one decimal point
+                                            if (it.all { char -> char.isDigit() || char == '.' } && it.count { char -> char == '.' } <= 1) {
+                                                dialogBudgetAmount = it
+                                            }
+                                        },
+                                        label = { Text("Budget Amount") },
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.Number
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                                
                                 Spacer(modifier = Modifier.height(8.dp))
                             }
                         }
@@ -282,8 +367,12 @@ fun HomeScreen(
                     TextButton(
                         onClick = {
                             val amount = dialogAmount.toDoubleOrNull()
+                            val budget = if (isBudgetEnabled) dialogBudgetAmount.toDoubleOrNull() ?: 0.0 else 0.0
                             val decimalPart = dialogAmount.substringAfter(".", "")
-                            val hasTooManyDecimals = decimalPart.length > 2
+                            val hasTooManyDecimals = decimalPart.contains(".") && decimalPart.length > 2
+                            
+                            val budgetDecimalPart = dialogBudgetAmount.substringAfter(".", "")
+                            val budgetHasTooManyDecimals = isBudgetEnabled && dialogBudgetAmount.contains(".") && budgetDecimalPart.length > 2
 
                             // Basic validation
                             if (dialogTitle.isBlank()) {
@@ -291,23 +380,28 @@ fun HomeScreen(
                             } else if (amount == null) {
                                 errorMessage = "Please enter a valid number"
                             } else if (hasTooManyDecimals) {
-                                errorMessage = "Use no more than 2 decimal places"
+                                errorMessage = "Amount: Use no more than 2 decimal places"
                             } else if (amount <= 0) {
                                 errorMessage = "Amount must be greater than 0"
                             } else if (dialogCategory.isBlank()) {
                                 errorMessage = "Please enter a category"
+                            } else if (isBudgetEnabled && dialogBudgetAmount.isNotBlank() && dialogBudgetAmount.toDoubleOrNull() == null) {
+                                errorMessage = "Please enter a valid budget"
+                            } else if (budgetHasTooManyDecimals) {
+                                errorMessage = "Budget: Use no more than 2 decimal places"
                             } else {
 
                                 if (editingExpense == null) {
                                     // Add a brand new expense
-                                    onAddExpense(dialogTitle, amount, dialogCategory)
+                                    onAddExpense(dialogTitle, amount, dialogCategory, budget)
                                 } else {
                                     // Update the existing expense
                                     onUpdateExpense(
                                         editingExpense!!.copy(
                                             title = dialogTitle,
                                             amount = amount,
-                                            category = dialogCategory
+                                            category = dialogCategory,
+                                            budget = budget
                                         )
                                     )
                                 }
@@ -316,6 +410,8 @@ fun HomeScreen(
                                 dialogTitle = ""
                                 dialogAmount = ""
                                 dialogCategory = "Food"
+                                isBudgetEnabled = false
+                                dialogBudgetAmount = ""
                                 errorMessage = ""
                                 editingExpense = null
                                 showEditorDialog = false
