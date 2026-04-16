@@ -23,7 +23,7 @@ fun HomeScreenPreview() {
         ) { innerPadding ->
             HomeScreen(
                 expenses = emptyList(),
-                onAddExpense = { _, _, _, _ -> },
+                onAddExpense = { _, _, _, _, _ -> },
                 onUpdateExpense = { },
                 onDeleteExpense = { },
                 modifier = Modifier.padding(innerPadding)

@@ -55,8 +55,8 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
                     HomeScreen(
                         expenses = expenses,
-                        onAddExpense = { title, amount, category, budget ->
-                            expenseViewModel.addExpense(title, amount, category, budget)
+                        onAddExpense = { title, amount, category, budget, timestamp ->
+                            expenseViewModel.addExpense(title, amount, category, budget, timestamp)
                         },
                         onUpdateExpense = { expense ->
                             expenseViewModel.updateExpense(expense)

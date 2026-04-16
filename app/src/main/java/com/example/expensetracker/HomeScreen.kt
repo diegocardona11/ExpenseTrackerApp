@@ -17,13 +17,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
@@ -31,8 +37,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -44,6 +53,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.expensetracker.data.Expense
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 // List of categories for the dropdown
 val categories = listOf(
@@ -105,17 +118,26 @@ fun CategoryPieChart(expenses: List<Expense>, modifier: Modifier = Modifier) {
 @Composable
 fun HomeScreen(
     expenses: List<Expense>,
-    onAddExpense: (String, Double, String, Double) -> Unit,
+    onAddExpense: (String, Double, String, Double, Long) -> Unit,
     onUpdateExpense: (Expense) -> Unit,
     onDeleteExpense: (Expense) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // --- FILTER STATE ---
+    var selectedMonth by remember { mutableIntStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
+    var selectedYear by remember { mutableIntStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
+    var showFilterDialog by remember { mutableStateOf(false) }
+
+    val filteredExpenses = expenses.filter {
+        val cal = Calendar.getInstance().apply { timeInMillis = it.timestamp }
+        cal.get(Calendar.MONTH) == selectedMonth && cal.get(Calendar.YEAR) == selectedYear
+    }
 
     // Adds up all expense amounts for the total card
-    val totalSpent = expenses.sumOf { it.amount }
+    val totalSpent = filteredExpenses.sumOf { it.amount }
     
     // Adds up all budgets set for the expenses
-    val totalBudget = expenses.sumOf { it.budget }
+    val totalBudget = filteredExpenses.sumOf { it.budget }
 
     // Title typed into the popup
     var dialogTitle by remember { mutableStateOf("") }
@@ -125,6 +147,10 @@ fun HomeScreen(
 
     // Category selected in the popup
     var dialogCategory by remember { mutableStateOf("Food") }
+
+    // Date state for the popup
+    var dialogTimestamp by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var showDatePicker by remember { mutableStateOf(false) }
 
     // Budget state for the popup
     var isBudgetEnabled by remember { mutableStateOf(false) }
@@ -159,10 +185,25 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    "Overview",
-                    style = MaterialTheme.typography.titleMedium
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val monthName = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(
+                        Calendar.getInstance().apply { 
+                            set(Calendar.MONTH, selectedMonth)
+                            set(Calendar.YEAR, selectedYear)
+                        }.time
+                    )
+                    Text(
+                        monthName,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    IconButton(onClick = { showFilterDialog = true }) {
+                        Icon(Icons.Default.DateRange, contentDescription = "Filter by month")
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -203,9 +244,9 @@ fun HomeScreen(
                     }
 
                     // --- PIE CHART INTEGRATION ---
-                    if (expenses.isNotEmpty() && isPieChartVisible) {
+                    if (filteredExpenses.isNotEmpty() && isPieChartVisible) {
                         CategoryPieChart(
-                            expenses = expenses,
+                            expenses = filteredExpenses,
                             modifier = Modifier.padding(start = 16.dp)
                         )
                     }
@@ -255,6 +296,7 @@ fun HomeScreen(
                 dialogTitle = ""
                 dialogAmount = ""
                 dialogCategory = "Food"
+                dialogTimestamp = System.currentTimeMillis()
                 isBudgetEnabled = false
                 dialogBudgetAmount = ""
                 errorMessage = ""
@@ -269,17 +311,17 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            "Recent Expenses",
+            "Expenses for this month",
             style = MaterialTheme.typography.titleMedium
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        if (expenses.isEmpty()) {
-            Text("No expenses yet")
+        if (filteredExpenses.isEmpty()) {
+            Text("No expenses found for this month")
         } else {
             LazyColumn {
-                items(expenses) { expense ->
+                items(filteredExpenses) { expense ->
                     ExpenseRow(
                         expense = expense,
 
@@ -289,6 +331,7 @@ fun HomeScreen(
                             dialogTitle = expense.title
                             dialogAmount = expense.amount.toString()
                             dialogCategory = expense.category
+                            dialogTimestamp = expense.timestamp
                             isBudgetEnabled = expense.budget > 0
                             dialogBudgetAmount = if (expense.budget > 0) expense.budget.toString() else ""
                             errorMessage = ""
@@ -387,6 +430,47 @@ fun HomeScreen(
                                         contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                                     )
                                 }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Date display and picker button
+                        val formattedDate = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date(dialogTimestamp))
+                        OutlinedTextField(
+                            value = formattedDate,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Date") },
+                            trailingIcon = {
+                                IconButton(onClick = { showDatePicker = true }) {
+                                    Icon(Icons.Default.DateRange, contentDescription = "Select Date")
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        if (showDatePicker) {
+                            val datePickerState = rememberDatePickerState(
+                                initialSelectedDateMillis = dialogTimestamp
+                            )
+                            DatePickerDialog(
+                                onDismissRequest = { showDatePicker = false },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        dialogTimestamp = datePickerState.selectedDateMillis ?: dialogTimestamp
+                                        showDatePicker = false
+                                    }) {
+                                        Text("OK")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showDatePicker = false }) {
+                                        Text("Cancel")
+                                    }
+                                }
+                            ) {
+                                DatePicker(state = datePickerState)
                             }
                         }
 
@@ -493,7 +577,7 @@ fun HomeScreen(
 
                                 if (editingExpense == null) {
                                     // Add a brand new expense
-                                    onAddExpense(dialogTitle, amount, dialogCategory, budget)
+                                    onAddExpense(dialogTitle, amount, dialogCategory, budget, dialogTimestamp)
                                 } else {
                                     // Update the existing expense
                                     onUpdateExpense(
@@ -501,7 +585,8 @@ fun HomeScreen(
                                             title = dialogTitle,
                                             amount = amount,
                                             category = dialogCategory,
-                                            budget = budget
+                                            budget = budget,
+                                            timestamp = dialogTimestamp
                                         )
                                     )
                                 }
@@ -510,6 +595,7 @@ fun HomeScreen(
                                 dialogTitle = ""
                                 dialogAmount = ""
                                 dialogCategory = "Food"
+                                dialogTimestamp = System.currentTimeMillis()
                                 isBudgetEnabled = false
                                 dialogBudgetAmount = ""
                                 errorMessage = ""
@@ -536,6 +622,66 @@ fun HomeScreen(
                         Text("Cancel")
                     }
                 }
+            )
+        }
+
+        // --- FILTER DIALOG ---
+        if (showFilterDialog) {
+            AlertDialog(
+                onDismissRequest = { showFilterDialog = false },
+                title = { Text("Filter by Month") },
+                text = {
+                    Column {
+                        val months = listOf("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+                        var tempMonth by remember { mutableIntStateOf(selectedMonth) }
+                        var tempYear by remember { mutableIntStateOf(selectedYear) }
+
+                        // Month Selection
+                        Text("Select Month", style = MaterialTheme.typography.labelLarge)
+                        var monthExpanded by remember { mutableStateOf(false) }
+                        ExposedDropdownMenuBox(
+                            expanded = monthExpanded,
+                            onExpandedChange = { monthExpanded = it }
+                        ) {
+                            OutlinedTextField(
+                                value = months[tempMonth],
+                                onValueChange = {},
+                                readOnly = true,
+                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = monthExpanded) }
+                            )
+                            ExposedDropdownMenu(expanded = monthExpanded, onDismissRequest = { monthExpanded = false }) {
+                                months.forEachIndexed { index, name ->
+                                    DropdownMenuItem(text = { Text(name) }, onClick = { tempMonth = index; monthExpanded = false })
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Year Selection (Simple input for now)
+                        OutlinedTextField(
+                            value = tempYear.toString(),
+                            onValueChange = { tempYear = it.toIntOrNull() ?: tempYear },
+                            label = { Text("Year") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            TextButton(onClick = { showFilterDialog = false }) { Text("Cancel") }
+                            TextButton(onClick = { 
+                                selectedMonth = tempMonth
+                                selectedYear = tempYear
+                                showFilterDialog = false 
+                            }) { Text("Apply") }
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {}
             )
         }
 
