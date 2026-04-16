@@ -24,6 +24,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
@@ -38,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -201,7 +203,6 @@ fun HomeScreen(
                     }
 
                     // --- PIE CHART INTEGRATION ---
-                    // Now respects the isPieChartVisible toggle
                     if (expenses.isNotEmpty() && isPieChartVisible) {
                         CategoryPieChart(
                             expenses = expenses,
@@ -211,12 +212,35 @@ fun HomeScreen(
                 }
                 
                 if (totalBudget > 0) {
+                    val spentPercentage = (totalSpent / totalBudget).toFloat()
+                    
+                    // Logic for progress bar color
+                    val barColor = when {
+                        spentPercentage < 0.7f -> Color(0xFF81C784) // Normal: Green
+                        spentPercentage <= 1.0f -> Color(0xFFFFB74D) // Warning: Orange
+                        else -> Color(0xFFE57373) // Over Budget: Red
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // --- BUDGET PROGRESS BAR ---
+                    LinearProgressIndicator(
+                        progress = { spentPercentage.coerceAtMost(1f) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(10.dp),
+                        color = barColor,
+                        trackColor = barColor.copy(alpha = 0.2f),
+                        strokeCap = StrokeCap.Round
+                    )
+
                     val remaining = totalBudget - totalSpent
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = if (remaining >= 0) "Remaining: $${"%.2f".format(remaining)}" else "Over Budget: $${"%.2f".format(-remaining)}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (remaining >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                        color = barColor,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
