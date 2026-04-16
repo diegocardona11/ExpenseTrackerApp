@@ -3,7 +3,9 @@
 package com.example.expensetracker
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -34,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -54,6 +58,47 @@ val categories = listOf(
     "Savings",
     "Other"
 )
+
+// Assign a color to each category for the pie chart
+val categoryColors = mapOf(
+    "Housing" to Color(0xFFE57373),
+    "Food" to Color(0xFF81C784),
+    "Transportation" to Color(0xFF64B5F6),
+    "Gas" to Color(0xFFFFD54F),
+    "Bills" to Color(0xFFBA68C8),
+    "Shopping" to Color(0xFFF06292),
+    "Entertainment" to Color(0xFF4DB6AC),
+    "Health" to Color(0xFFFF8A65),
+    "Education" to Color(0xFF9575CD),
+    "Travel" to Color(0xFFAED581),
+    "Savings" to Color(0xFFFFB74D),
+    "Other" to Color(0xFF90A4AE)
+)
+
+@Composable
+fun CategoryPieChart(expenses: List<Expense>, modifier: Modifier = Modifier) {
+    if (expenses.isEmpty()) return
+
+    val totalSpent = expenses.sumOf { it.amount }
+    val categoryTotals = expenses.groupBy { it.category }
+        .mapValues { entry -> entry.value.sumOf { it.amount } }
+
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        Canvas(modifier = Modifier.size(150.dp)) {
+            var startAngle = -90f
+            categoryTotals.forEach { (category, amount) ->
+                val sweepAngle = (amount / totalSpent).toFloat() * 360f
+                drawArc(
+                    color = categoryColors[category] ?: Color.Gray,
+                    startAngle = startAngle,
+                    sweepAngle = sweepAngle,
+                    useCenter = true
+                )
+                startAngle += sweepAngle
+            }
+        }
+    }
+}
 
 @Composable
 fun HomeScreen(
@@ -82,6 +127,9 @@ fun HomeScreen(
     // Budget state for the popup
     var isBudgetEnabled by remember { mutableStateOf(false) }
     var dialogBudgetAmount by remember { mutableStateOf("") }
+
+    // Pie Chart Toggle state
+    var isPieChartVisible by remember { mutableStateOf(true) }
 
     // Error message shown if the input is bad
     var errorMessage by remember { mutableStateOf("") }
@@ -118,35 +166,47 @@ fun HomeScreen(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text(
-                            "Spent",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                        Text(
-                            "$${"%.2f".format(totalSpent)}",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    if (totalBudget > 0) {
-                        Column(horizontalAlignment = Alignment.End) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Column {
                             Text(
-                                "Budget",
+                                "Spent",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.secondary
                             )
                             Text(
-                                "$${"%.2f".format(totalBudget)}",
+                                "$${"%.2f".format(totalSpent)}",
                                 style = MaterialTheme.typography.headlineSmall,
-                                color = if (totalSpent > totalBudget) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold
                             )
                         }
+
+                        if (totalBudget > 0) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Column {
+                                Text(
+                                    "Budget",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                                Text(
+                                    "$${"%.2f".format(totalBudget)}",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = if (totalSpent > totalBudget) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+
+                    // --- PIE CHART INTEGRATION ---
+                    // Now respects the isPieChartVisible toggle
+                    if (expenses.isNotEmpty() && isPieChartVisible) {
+                        CategoryPieChart(
+                            expenses = expenses,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
                     }
                 }
                 
@@ -318,6 +378,22 @@ fun HomeScreen(
                         // Advanced options section
                         AnimatedVisibility(visible = showAdvanced) {
                             Column {
+                                // Pie Chart Toggle
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Show Pie Chart", style = MaterialTheme.typography.bodyLarge)
+                                    Switch(
+                                        checked = isPieChartVisible,
+                                        onCheckedChange = { isPieChartVisible = it }
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // Set Budget Toggle
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically,
