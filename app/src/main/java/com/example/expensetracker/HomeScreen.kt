@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -139,6 +140,20 @@ fun HomeScreen(
     // Adds up all budgets set for the expenses
     val totalBudget = filteredExpenses.sumOf { it.budget }
 
+    // --- CYCLE COUNTDOWN LOGIC ---
+    val today = Calendar.getInstance()
+    val isCurrentMonth = selectedMonth == today.get(Calendar.MONTH) && selectedYear == today.get(Calendar.YEAR)
+    val cycleStatus = when {
+        isCurrentMonth -> {
+            val daysInMonth = today.getActualMaximum(Calendar.DAY_OF_MONTH)
+            val currentDay = today.get(Calendar.DAY_OF_MONTH)
+            val daysLeft = daysInMonth - currentDay
+            if (daysLeft == 0) "Cycle ends today" else "Ends in $daysLeft days"
+        }
+        selectedYear < today.get(Calendar.YEAR) || (selectedYear == today.get(Calendar.YEAR) && selectedMonth < today.get(Calendar.MONTH)) -> "Cycle finished"
+        else -> "Cycle starts later"
+    }
+
     // Title typed into the popup
     var dialogTitle by remember { mutableStateOf("") }
 
@@ -190,18 +205,25 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val monthName = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(
-                        Calendar.getInstance().apply { 
-                            set(Calendar.MONTH, selectedMonth)
-                            set(Calendar.YEAR, selectedYear)
-                        }.time
-                    )
-                    Text(
-                        monthName,
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                    Column {
+                        val monthName = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(
+                            Calendar.getInstance().apply { 
+                                set(Calendar.MONTH, selectedMonth)
+                                set(Calendar.YEAR, selectedYear)
+                            }.time
+                        )
+                        Text(
+                            monthName,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            cycleStatus,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                    }
                     IconButton(onClick = { showFilterDialog = true }) {
-                        Icon(Icons.Default.DateRange, contentDescription = "Filter by month")
+                        Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Filter by month")
                     }
                 }
 
