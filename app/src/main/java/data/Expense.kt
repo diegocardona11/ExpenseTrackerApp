@@ -10,6 +10,9 @@ data class Expense(
     // Unique ID for each expense
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
+    
+    // Links this expense to a specific budget
+    val budgetId: Int,
 
     // What the expense was for
     val title: String,
@@ -20,7 +23,7 @@ data class Expense(
     // Category like Food, Gas, Entertainment, etc.
     val category: String,
 
-    // Optional budget amount for this specific category
+    // Optional budget amount for this specific category (keeping for detail compatibility)
     val budget: Double = 0.0,
 
     // Automatically saves the time the expense was created
