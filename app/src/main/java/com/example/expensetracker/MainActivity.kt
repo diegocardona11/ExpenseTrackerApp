@@ -41,10 +41,8 @@ class MainActivity : ComponentActivity() {
                 val expenses by expenseViewModel.expenses.collectAsState()
                 val budgets by expenseViewModel.budgets.collectAsState()
                 
-                // Track selected budget here to handle back button
                 var selectedBudget by remember { mutableStateOf<Budget?>(null) }
 
-                // This handles the physical back button on the phone
                 if (selectedBudget != null) {
                     BackHandler {
                         selectedBudget = null
@@ -53,7 +51,6 @@ class MainActivity : ComponentActivity() {
 
                 Scaffold(
                     topBar = {
-                        // Only show the main app bar if NO budget is selected
                         if (selectedBudget == null) {
                             TopAppBar(
                                 title = { Text("Expense Tracker") },

@@ -30,7 +30,7 @@ fun HomeScreenPreview() {
                 onAddExpense = { _, _, _, _, _ -> },
                 onUpdateExpense = { },
                 onDeleteExpense = { },
-                modifier = Modifier.padding(innerPadding)//
+                modifier = Modifier.padding(innerPadding)
             )
         }
     }

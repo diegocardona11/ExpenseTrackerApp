@@ -2,7 +2,6 @@
 
 package com.example.expensetracker
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -32,7 +31,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -46,6 +44,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -68,21 +67,11 @@ import java.util.Locale
 
 // List of categories for the dropdown
 val categories = listOf(
-    "Housing",
-    "Food",
-    "Transportation",
-    "Gas",
-    "Bills",
-    "Shopping",
-    "Entertainment",
-    "Health",
-    "Education",
-    "Travel",
-    "Savings",
-    "Other"
+    "Housing", "Food", "Transportation", "Gas", "Bills", "Shopping",
+    "Entertainment", "Health", "Education", "Travel", "Savings", "Other"
 )
 
-// Assign a color to each category for the pie chart
+// Category colors for the pie chart
 val categoryColors = mapOf(
     "Housing" to Color(0xFFE57373),
     "Food" to Color(0xFF81C784),
@@ -101,7 +90,6 @@ val categoryColors = mapOf(
 @Composable
 fun CategoryPieChart(expenses: List<Expense>, modifier: Modifier = Modifier) {
     if (expenses.isEmpty()) return
-
     val totalSpent = expenses.sumOf { it.amount }
     val categoryTotals = expenses.groupBy { it.category }
         .mapValues { entry -> entry.value.sumOf { it.amount } }
@@ -135,54 +123,51 @@ fun HomeScreen(
     onDeleteExpense: (Expense) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showAddBudgetDialog by remember { mutableStateOf(false) }
+    val showAddBudgetDialog = remember { mutableStateOf(false) }
 
     if (selectedBudget == null) {
-        // Main list of budgets
-        Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Your Budgets", style = MaterialTheme.typography.headlineMedium)
-                IconButton(onClick = { showAddBudgetDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Budget")
+        Scaffold(
+            modifier = modifier,
+            topBar = { TopAppBar(title = { Text("Your Budgets") }) }
+        ) { innerPadding ->
+            Column(modifier = Modifier.padding(innerPadding).padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Budget Overview", style = MaterialTheme.typography.titleLarge)
+                    IconButton(onClick = { showAddBudgetDialog.value = true }) {
+                        Icon(Icons.Default.Add, contentDescription = "Add Budget")
+                    }
                 }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            if (budgets.isEmpty()) {
-                Text("No budgets yet. Click + to add one!")
-            } else {
-                LazyColumn {
-                    items(budgets) { budget ->
-                        val budgetExpenses = expenses.filter { it.budgetId == budget.id }
-                        val totalSpent = budgetExpenses.sumOf { it.amount }
-                        
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                                .clickable { onBudgetSelected(budget) }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                Spacer(modifier = Modifier.height(16.dp))
+                if (budgets.isEmpty()) {
+                    Text("No budgets yet. Click + to add one!")
+                } else {
+                    LazyColumn {
+                        items(budgets) { budget ->
+                            val budgetExpenses = expenses.filter { it.budgetId == budget.id }
+                            val totalSpent = budgetExpenses.sumOf { it.amount }
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp)
+                                    .clickable { onBudgetSelected(budget) }
                             ) {
-                                Text(budget.icon, modifier = Modifier.padding(end = 16.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(budget.name, style = MaterialTheme.typography.titleLarge)
-                                    Text("$${"%.2f".format(totalSpent)} of $${"%.2f".format(budget.amount)} spent")
-                                    
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    val progress = if (budget.amount > 0) (totalSpent / budget.amount).toFloat().coerceAtMost(1f) else 0f
-                                    LinearProgressIndicator(
-                                        progress = { progress },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        strokeCap = StrokeCap.Round
-                                    )
+                                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Text(budget.icon, modifier = Modifier.padding(end = 16.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(budget.name, style = MaterialTheme.typography.titleLarge)
+                                        Text("$${"%.2f".format(totalSpent)} of $${"%.2f".format(budget.amount)} spent")
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        val progress = if (budget.amount > 0) (totalSpent / budget.amount).toFloat().coerceAtMost(1f) else 0f
+                                        LinearProgressIndicator(
+                                            progress = { progress },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            strokeCap = StrokeCap.Round
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -191,7 +176,6 @@ fun HomeScreen(
             }
         }
     } else {
-        // Detailed view for a specific budget
         BudgetDetailView(
             budget = selectedBudget,
             expenses = expenses.filter { it.budgetId == selectedBudget.id },
@@ -203,12 +187,12 @@ fun HomeScreen(
         )
     }
 
-    if (showAddBudgetDialog) {
+    if (showAddBudgetDialog.value) {
         AddBudgetDialog(
-            onDismiss = { showAddBudgetDialog = false },
+            onDismiss = { showAddBudgetDialog.value = false },
             onConfirm = { name, amount ->
                 onAddBudget(name, amount)
-                showAddBudgetDialog = false
+                showAddBudgetDialog.value = false
             }
         )
     }
@@ -218,9 +202,8 @@ fun HomeScreen(
 fun AddBudgetDialog(onDismiss: () -> Unit, onConfirm: (String, Double) -> Unit) {
     var name by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
-    
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { onDismiss() },
         title = { Text("New Budget") },
         text = {
             Column {
@@ -241,7 +224,7 @@ fun AddBudgetDialog(onDismiss: () -> Unit, onConfirm: (String, Double) -> Unit) 
             }) { Text("Create") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = { onDismiss() }) { Text("Cancel") }
         }
     )
 }
@@ -257,10 +240,9 @@ fun BudgetDetailView(
     onDeleteExpense: (Expense) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // --- FILTER STATE ---
     var selectedMonth by remember { mutableIntStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
     var selectedYear by remember { mutableIntStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
-    var showFilterDialog by remember { mutableStateOf(false) }
+    val showFilterDialog = remember { mutableStateOf(false) }
 
     val filteredExpenses = expenses.filter {
         val cal = Calendar.getInstance().apply { timeInMillis = it.timestamp }
@@ -270,40 +252,33 @@ fun BudgetDetailView(
     val totalSpent = filteredExpenses.sumOf { it.amount }
     val totalBudget = budget.amount
 
-    // --- CYCLE COUNTDOWN LOGIC ---
     val today = Calendar.getInstance()
-    val isCurrentMonth = selectedMonth == today.get(Calendar.MONTH) && selectedYear == today.get(Calendar.YEAR)
-    val cycleStatus = when {
-        isCurrentMonth -> {
-            val daysInMonth = today.getActualMaximum(Calendar.DAY_OF_MONTH)
-            val currentDay = today.get(Calendar.DAY_OF_MONTH)
-            val daysLeft = daysInMonth - currentDay
-            if (daysLeft == 0) "Cycle ends today" else "Ends in $daysLeft days"
-        }
-        selectedYear < today.get(Calendar.YEAR) || (selectedYear == today.get(Calendar.YEAR) && selectedMonth < today.get(Calendar.MONTH)) -> "Cycle finished"
-        else -> "Cycle starts later"
-    }
+    val cycleStatus = if (selectedMonth == today.get(Calendar.MONTH) && selectedYear == today.get(Calendar.YEAR)) {
+        val daysLeft = today.getActualMaximum(Calendar.DAY_OF_MONTH) - today.get(Calendar.DAY_OF_MONTH)
+        if (daysLeft == 0) "Cycle ends today" else "Ends in $daysLeft days"
+    } else if (selectedYear < today.get(Calendar.YEAR) || (selectedYear == today.get(Calendar.YEAR) && selectedMonth < today.get(Calendar.MONTH))) {
+        "Cycle finished"
+    } else "Cycle starts later"
 
-    // Add/Edit Dialog states
     var dialogTitle by remember { mutableStateOf("") }
     var dialogAmount by remember { mutableStateOf("") }
     var dialogCategory by remember { mutableStateOf("Food") }
     var dialogTimestamp by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var isPieChartVisible by remember { mutableStateOf(true) }
+    val showDatePicker = remember { mutableStateOf(false) }
+    val isPieChartVisible = remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf("") }
-    var editingExpense by remember { mutableStateOf<Expense?>(null) }
-    var deleteTarget by remember { mutableStateOf<Expense?>(null) }
-    var showEditorDialog by remember { mutableStateOf(false) }
-    var showAdvanced by remember { mutableStateOf(false) }
+    val editingExpense: MutableState<Expense?> = remember { mutableStateOf(null) }
+    val deleteTarget: MutableState<Expense?> = remember { mutableStateOf(null) }
+    val showEditorDialog = remember { mutableStateOf(false) }
+    val showAdvanced = remember { mutableStateOf(false) }
 
     Scaffold(
-        modifier = modifier, // Applying the root padding modifier here to lower the view
+        modifier = modifier, 
         topBar = {
             TopAppBar(
                 title = { Text(budget.name) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = { onBack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
@@ -311,22 +286,18 @@ fun BudgetDetailView(
         }
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp)) {
-            // Overview Card
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
-                            val monthName = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(
-                                Calendar.getInstance().apply { set(Calendar.MONTH, selectedMonth); set(Calendar.YEAR, selectedYear) }.time
-                            )
+                            val calendar = Calendar.getInstance().apply { set(Calendar.MONTH, selectedMonth); set(Calendar.YEAR, selectedYear) }
+                            val monthName = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(calendar.time)
                             Text(monthName, style = MaterialTheme.typography.titleMedium)
                             Text(cycleStatus, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                         }
-                        IconButton(onClick = { showFilterDialog = true }) { Icon(Icons.AutoMirrored.Filled.List, "Filter") }
+                        IconButton(onClick = { showFilterDialog.value = true }) { Icon(Icons.AutoMirrored.Filled.List, "Filter") }
                     }
-
                     Spacer(modifier = Modifier.height(8.dp))
-
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Spent", style = MaterialTheme.typography.labelMedium)
@@ -335,11 +306,10 @@ fun BudgetDetailView(
                             Text("Budget", style = MaterialTheme.typography.labelMedium)
                             Text("$${"%.2f".format(totalBudget)}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                         }
-                        if (filteredExpenses.isNotEmpty() && isPieChartVisible) {
+                        if (filteredExpenses.isNotEmpty() && isPieChartVisible.value) {
                             CategoryPieChart(expenses = filteredExpenses, modifier = Modifier.padding(start = 16.dp))
                         }
                     }
-
                     val spentPercentage = if (totalBudget > 0) (totalSpent / totalBudget).toFloat() else 0f
                     val barColor = when {
                         spentPercentage < 0.7f -> Color(0xFF81C784)
@@ -355,50 +325,41 @@ fun BudgetDetailView(
                     )
                 }
             }
-
             Spacer(modifier = Modifier.height(16.dp))
-
             Button(onClick = { 
-                editingExpense = null; dialogTitle = ""; dialogAmount = ""; dialogCategory = "Food"; dialogTimestamp = System.currentTimeMillis(); errorMessage = ""; showAdvanced = false; showEditorDialog = true 
+                editingExpense.value = null; dialogTitle = ""; dialogAmount = ""; dialogCategory = "Food"
+                dialogTimestamp = System.currentTimeMillis(); errorMessage = ""; showAdvanced.value = false; showEditorDialog.value = true 
             }, modifier = Modifier.fillMaxWidth()) { Text("+ Add Expense") }
-
             Spacer(modifier = Modifier.height(16.dp))
             Text("Expenses", style = MaterialTheme.typography.titleMedium)
-            
             if (filteredExpenses.isEmpty()) {
                 Text("No expenses found.")
             } else {
                 LazyColumn {
                     items(filteredExpenses) { expense ->
                         ExpenseRow(expense = expense, onEdit = {
-                            editingExpense = expense; dialogTitle = expense.title; dialogAmount = expense.amount.toString(); dialogCategory = expense.category; dialogTimestamp = expense.timestamp; errorMessage = ""; showAdvanced = false; showEditorDialog = true
-                        }, onDelete = { deleteTarget = expense })
+                            editingExpense.value = expense; dialogTitle = expense.title; dialogAmount = expense.amount.toString()
+                            dialogCategory = expense.category; dialogTimestamp = expense.timestamp; errorMessage = ""
+                            showAdvanced.value = false; showEditorDialog.value = true
+                        }, onDelete = { deleteTarget.value = expense })
                     }
                 }
             }
         }
     }
 
-    if (showEditorDialog) {
+    if (showEditorDialog.value) {
         AlertDialog(
-            onDismissRequest = { showEditorDialog = false },
-            title = { Text(if (editingExpense == null) "Add Expense" else "Edit Expense") },
+            onDismissRequest = { showEditorDialog.value = false },
+            title = { Text(if (editingExpense.value == null) "Add Expense" else "Edit Expense") },
             text = {
                 Column {
                     OutlinedTextField(value = dialogTitle, onValueChange = { dialogTitle = it }, label = { Text("Title") })
                     OutlinedTextField(value = dialogAmount, onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) dialogAmount = it }, label = { Text("Amount") })
-                    
-                    // Category Dropdown
                     var expanded by remember { mutableStateOf(false) }
-                    ExposedDropdownMenuBox(
-                        expanded = expanded,
-                        onExpandedChange = { expanded = it }
-                    ) {
+                    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
                         OutlinedTextField(
-                            value = dialogCategory,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Category") },
+                            value = dialogCategory, onValueChange = {}, readOnly = true, label = { Text("Category") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                             modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                         )
@@ -408,99 +369,108 @@ fun BudgetDetailView(
                             }
                         }
                     }
-
                     val formattedDate = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date(dialogTimestamp))
                     OutlinedTextField(value = formattedDate, onValueChange = {}, readOnly = true, label = { Text("Date") },
-                        trailingIcon = { IconButton(onClick = { showDatePicker = true }) { Icon(Icons.Default.DateRange, "Date") } })
+                        trailingIcon = { IconButton(onClick = { showDatePicker.value = true }) { Icon(Icons.Default.DateRange, "Date") } })
+                    if (showAdvanced.value) {
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Show Pie Chart", style = MaterialTheme.typography.bodyLarge)
+                            Switch(checked = isPieChartVisible.value, onCheckedChange = { isPieChartVisible.value = it })
+                        }
+                    }
+                    if (errorMessage.isNotBlank()) {
+                        Text(text = errorMessage, color = MaterialTheme.colorScheme.error)
+                    }
+                    TextButton(onClick = { showAdvanced.value = !showAdvanced.value }) {
+                        Text(if (showAdvanced.value) "Hide Advanced" else "Show Advanced")
+                    }
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
                     val amt = dialogAmount.toDoubleOrNull() ?: 0.0
-                    if (dialogTitle.isNotBlank() && amt > 0) {
-                        if (editingExpense == null) onAddExpense(dialogTitle, amt, dialogCategory, budget.id, dialogTimestamp)
-                        else onUpdateExpense(editingExpense!!.copy(title = dialogTitle, amount = amt, category = dialogCategory, timestamp = dialogTimestamp))
-                        showEditorDialog = false
+                    val decimalPart = dialogAmount.substringAfter(".", "")
+                    if (dialogTitle.isBlank()) errorMessage = "Please enter a title"
+                    else if (amt <= 0) errorMessage = "Please enter a valid amount"
+                    else if (dialogAmount.contains(".") && decimalPart.length > 2) errorMessage = "Max 2 decimal places"
+                    else {
+                        if (editingExpense.value == null) onAddExpense(dialogTitle, amt, dialogCategory, budget.id, dialogTimestamp)
+                        else onUpdateExpense(editingExpense.value!!.copy(title = dialogTitle, amount = amt, category = dialogCategory, timestamp = dialogTimestamp))
+                        showEditorDialog.value = false
                     }
                 }) { Text("Save") }
             },
-            dismissButton = { TextButton(onClick = { showEditorDialog = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { showEditorDialog.value = false }) { Text("Cancel") } }
         )
     }
     
-    if (showDatePicker) {
+    if (showDatePicker.value) {
         val state = rememberDatePickerState(initialSelectedDateMillis = dialogTimestamp)
-        DatePickerDialog(onDismissRequest = { showDatePicker = false }, 
-            confirmButton = { TextButton(onClick = { dialogTimestamp = state.selectedDateMillis ?: dialogTimestamp; showDatePicker = false }) { Text("OK") } }) {
+        DatePickerDialog(onDismissRequest = { showDatePicker.value = false }, 
+            confirmButton = { 
+                TextButton(onClick = { 
+                    dialogTimestamp = state.selectedDateMillis ?: dialogTimestamp
+                    showDatePicker.value = false 
+                }) { Text("OK") } 
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker.value = false }) { Text("Cancel") }
+            }
+        ) {
             DatePicker(state = state)
         }
     }
 
-    if (showFilterDialog) {
+    if (showFilterDialog.value) {
         AlertDialog(
-            onDismissRequest = { showFilterDialog = false },
+            onDismissRequest = { showFilterDialog.value = false },
             title = { Text("Filter by Month") },
             text = {
                 Column {
                     val months = listOf("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
                     var tempMonth by remember { mutableIntStateOf(selectedMonth) }
                     var tempYear by remember { mutableIntStateOf(selectedYear) }
-
-                    // Month Selection
-                    Text("Select Month", style = MaterialTheme.typography.labelLarge)
                     var monthExpanded by remember { mutableStateOf(false) }
-                    ExposedDropdownMenuBox(
-                        expanded = monthExpanded,
-                        onExpandedChange = { monthExpanded = it }
-                    ) {
+                    ExposedDropdownMenuBox(expanded = monthExpanded, onExpandedChange = { monthExpanded = it }) {
                         OutlinedTextField(
-                            value = months[tempMonth],
-                            onValueChange = {},
-                            readOnly = true,
-                            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                            value = months[tempMonth], onValueChange = {}, readOnly = true, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = monthExpanded) }
                         )
                         ExposedDropdownMenu(expanded = monthExpanded, onDismissRequest = { monthExpanded = false }) {
-                            months.forEachIndexed { index, name ->
-                                DropdownMenuItem(text = { Text(name) }, onClick = { tempMonth = index; monthExpanded = false })
-                            }
+                            months.forEachIndexed { index, name -> DropdownMenuItem(text = { Text(name) }, onClick = { tempMonth = index; monthExpanded = false }) }
                         }
                     }
-
                     Spacer(modifier = Modifier.height(16.dp))
-
-                    OutlinedTextField(
-                        value = tempYear.toString(),
-                        onValueChange = { if (it.all { c -> c.isDigit() }) tempYear = it.toIntOrNull() ?: tempYear },
-                        label = { Text("Year") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
+                    OutlinedTextField(value = tempYear.toString(), onValueChange = { if (it.all { c -> c.isDigit() }) tempYear = it.toIntOrNull() ?: tempYear }, label = { Text("Year") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                     Spacer(modifier = Modifier.height(16.dp))
-
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = { showFilterDialog = false }) { Text("Cancel") }
+                        TextButton(onClick = { showFilterDialog.value = false }) { Text("Cancel") }
                         TextButton(onClick = { 
                             selectedMonth = tempMonth
                             selectedYear = tempYear
-                            showFilterDialog = false 
+                            showFilterDialog.value = false 
                         }) { Text("Apply") }
                     }
                 }
             },
-            confirmButton = {},
-            dismissButton = {}
+            confirmButton = {}, dismissButton = {}
         )
     }
 
-    deleteTarget?.let { expense ->
+    if (deleteTarget.value != null) {
         AlertDialog(
-            onDismissRequest = { deleteTarget = null },
+            onDismissRequest = { deleteTarget.value = null },
             title = { Text("Delete Expense") },
-            text = { Text("Are you sure you want to delete ${expense.title}?") },
-            confirmButton = { TextButton(onClick = { onDeleteExpense(expense); deleteTarget = null }) { Text("Delete") } },
-            dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text("Cancel") } }
+            text = { Text("Are you sure you want to delete ${deleteTarget.value?.title}?") },
+            confirmButton = { 
+                TextButton(onClick = { 
+                    onDeleteExpense(deleteTarget.value!!)
+                    deleteTarget.value = null 
+                }) { Text("Delete") } 
+            },
+            dismissButton = { 
+                TextButton(onClick = { deleteTarget.value = null }) { Text("Cancel") } 
+            }
         )
     }
 }
