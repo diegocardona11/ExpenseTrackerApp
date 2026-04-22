@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
@@ -37,11 +36,9 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -126,48 +123,44 @@ fun HomeScreen(
     val showAddBudgetDialog = remember { mutableStateOf(false) }
 
     if (selectedBudget == null) {
-        Scaffold(
-            modifier = modifier,
-            topBar = { TopAppBar(title = { Text("Your Budgets") }) }
-        ) { innerPadding ->
-            Column(modifier = Modifier.padding(innerPadding).padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Budget Overview", style = MaterialTheme.typography.titleLarge)
-                    IconButton(onClick = { showAddBudgetDialog.value = true }) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Budget")
-                    }
+        // Main list of budgets
+        Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Budget Overview", style = MaterialTheme.typography.titleLarge)
+                IconButton(onClick = { showAddBudgetDialog.value = true }) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Budget")
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-                if (budgets.isEmpty()) {
-                    Text("No budgets yet. Click + to add one!")
-                } else {
-                    LazyColumn {
-                        items(budgets) { budget ->
-                            val budgetExpenses = expenses.filter { it.budgetId == budget.id }
-                            val totalSpent = budgetExpenses.sumOf { it.amount }
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp)
-                                    .clickable { onBudgetSelected(budget) }
-                            ) {
-                                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Text(budget.icon, modifier = Modifier.padding(end = 16.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(budget.name, style = MaterialTheme.typography.titleLarge)
-                                        Text("$${"%.2f".format(totalSpent)} of $${"%.2f".format(budget.amount)} spent")
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        val progress = if (budget.amount > 0) (totalSpent / budget.amount).toFloat().coerceAtMost(1f) else 0f
-                                        LinearProgressIndicator(
-                                            progress = { progress },
-                                            modifier = Modifier.fillMaxWidth(),
-                                            strokeCap = StrokeCap.Round
-                                        )
-                                    }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            if (budgets.isEmpty()) {
+                Text("No budgets yet. Click + to add one!")
+            } else {
+                LazyColumn {
+                    items(budgets) { budget ->
+                        val budgetExpenses = expenses.filter { it.budgetId == budget.id }
+                        val totalSpent = budgetExpenses.sumOf { it.amount }
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp)
+                                .clickable { onBudgetSelected(budget) }
+                        ) {
+                            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(budget.icon, modifier = Modifier.padding(end = 16.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(budget.name, style = MaterialTheme.typography.titleLarge)
+                                    Text("$${"%.2f".format(totalSpent)} of $${"%.2f".format(budget.amount)} spent")
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    val progress = if (budget.amount > 0) (totalSpent / budget.amount).toFloat().coerceAtMost(1f) else 0f
+                                    LinearProgressIndicator(
+                                        progress = { progress },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        strokeCap = StrokeCap.Round
+                                    )
                                 }
                             }
                         }
@@ -179,7 +172,6 @@ fun HomeScreen(
         BudgetDetailView(
             budget = selectedBudget,
             expenses = expenses.filter { it.budgetId == selectedBudget.id },
-            onBack = { onBudgetSelected(null) },
             onAddExpense = onAddExpense,
             onUpdateExpense = onUpdateExpense,
             onDeleteExpense = onDeleteExpense,
@@ -203,7 +195,7 @@ fun AddBudgetDialog(onDismiss: () -> Unit, onConfirm: (String, Double) -> Unit) 
     var name by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     AlertDialog(
-        onDismissRequest = { onDismiss() },
+        onDismissRequest = onDismiss,
         title = { Text("New Budget") },
         text = {
             Column {
@@ -224,7 +216,7 @@ fun AddBudgetDialog(onDismiss: () -> Unit, onConfirm: (String, Double) -> Unit) 
             }) { Text("Create") }
         },
         dismissButton = {
-            TextButton(onClick = { onDismiss() }) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
 }
@@ -234,7 +226,6 @@ fun AddBudgetDialog(onDismiss: () -> Unit, onConfirm: (String, Double) -> Unit) 
 fun BudgetDetailView(
     budget: Budget,
     expenses: List<Expense>,
-    onBack: () -> Unit,
     onAddExpense: (String, Double, String, Int, Long) -> Unit,
     onUpdateExpense: (Expense) -> Unit,
     onDeleteExpense: (Expense) -> Unit,
@@ -272,77 +263,63 @@ fun BudgetDetailView(
     val showEditorDialog = remember { mutableStateOf(false) }
     val showAdvanced = remember { mutableStateOf(false) }
 
-    Scaffold(
-        modifier = modifier, 
-        topBar = {
-            TopAppBar(
-                title = { Text(budget.name) },
-                navigationIcon = {
-                    IconButton(onClick = { onBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+    Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column {
+                        val calendar = Calendar.getInstance().apply { set(Calendar.MONTH, selectedMonth); set(Calendar.YEAR, selectedYear) }
+                        val monthName = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(calendar.time)
+                        Text(monthName, style = MaterialTheme.typography.titleMedium)
+                        Text(cycleStatus, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    }
+                    IconButton(onClick = { showFilterDialog.value = true }) { Icon(Icons.AutoMirrored.Filled.List, "Filter") }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Spent", style = MaterialTheme.typography.labelMedium)
+                        Text("$${"%.2f".format(totalSpent)}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Budget", style = MaterialTheme.typography.labelMedium)
+                        Text("$${"%.2f".format(totalBudget)}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    }
+                    if (filteredExpenses.isNotEmpty() && isPieChartVisible.value) {
+                        CategoryPieChart(expenses = filteredExpenses, modifier = Modifier.padding(start = 16.dp))
                     }
                 }
-            )
-        }
-    ) { innerPadding ->
-        Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp)) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column {
-                            val calendar = Calendar.getInstance().apply { set(Calendar.MONTH, selectedMonth); set(Calendar.YEAR, selectedYear) }
-                            val monthName = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(calendar.time)
-                            Text(monthName, style = MaterialTheme.typography.titleMedium)
-                            Text(cycleStatus, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                        }
-                        IconButton(onClick = { showFilterDialog.value = true }) { Icon(Icons.AutoMirrored.Filled.List, "Filter") }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Spent", style = MaterialTheme.typography.labelMedium)
-                            Text("$${"%.2f".format(totalSpent)}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("Budget", style = MaterialTheme.typography.labelMedium)
-                            Text("$${"%.2f".format(totalBudget)}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                        }
-                        if (filteredExpenses.isNotEmpty() && isPieChartVisible.value) {
-                            CategoryPieChart(expenses = filteredExpenses, modifier = Modifier.padding(start = 16.dp))
-                        }
-                    }
-                    val spentPercentage = if (totalBudget > 0) (totalSpent / totalBudget).toFloat() else 0f
-                    val barColor = when {
-                        spentPercentage < 0.7f -> Color(0xFF81C784)
-                        spentPercentage <= 1.0f -> Color(0xFFFFB74D)
-                        else -> Color(0xFFE57373)
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    LinearProgressIndicator(
-                        progress = { spentPercentage.coerceAtMost(1f) },
-                        modifier = Modifier.fillMaxWidth().height(10.dp),
-                        color = barColor,
-                        strokeCap = StrokeCap.Round
-                    )
+                val spentPercentage = if (totalBudget > 0) (totalSpent / totalBudget).toFloat() else 0f
+                val barColor = when {
+                    spentPercentage < 0.7f -> Color(0xFF81C784)
+                    spentPercentage <= 1.0f -> Color(0xFFFFB74D)
+                    else -> Color(0xFFE57373)
                 }
+                Spacer(modifier = Modifier.height(16.dp))
+                LinearProgressIndicator(
+                    progress = { spentPercentage.coerceAtMost(1f) },
+                    modifier = Modifier.fillMaxWidth().height(10.dp),
+                    color = barColor,
+                    strokeCap = StrokeCap.Round
+                )
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { 
-                editingExpense.value = null; dialogTitle = ""; dialogAmount = ""; dialogCategory = "Food"
-                dialogTimestamp = System.currentTimeMillis(); errorMessage = ""; showAdvanced.value = false; showEditorDialog.value = true 
-            }, modifier = Modifier.fillMaxWidth()) { Text("+ Add Expense") }
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Expenses", style = MaterialTheme.typography.titleMedium)
-            if (filteredExpenses.isEmpty()) {
-                Text("No expenses found.")
-            } else {
-                LazyColumn {
-                    items(filteredExpenses) { expense ->
-                        ExpenseRow(expense = expense, onEdit = {
-                            editingExpense.value = expense; dialogTitle = expense.title; dialogAmount = expense.amount.toString()
-                            dialogCategory = expense.category; dialogTimestamp = expense.timestamp; errorMessage = ""
-                            showAdvanced.value = false; showEditorDialog.value = true
-                        }, onDelete = { deleteTarget.value = expense })
-                    }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = { 
+            editingExpense.value = null; dialogTitle = ""; dialogAmount = ""; dialogCategory = "Food"
+            dialogTimestamp = System.currentTimeMillis(); errorMessage = ""; showAdvanced.value = false; showEditorDialog.value = true 
+        }, modifier = Modifier.fillMaxWidth()) { Text("+ Add Expense") }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Expenses", style = MaterialTheme.typography.titleMedium)
+        if (filteredExpenses.isEmpty()) {
+            Text("No expenses found.")
+        } else {
+            LazyColumn {
+                items(filteredExpenses) { expense ->
+                    ExpenseRow(expense = expense, onEdit = {
+                        editingExpense.value = expense; dialogTitle = expense.title; dialogAmount = expense.amount.toString()
+                        dialogCategory = expense.category; dialogTimestamp = expense.timestamp; errorMessage = ""
+                        showAdvanced.value = false; showEditorDialog.value = true
+                    }, onDelete = { deleteTarget.value = expense })
                 }
             }
         }
@@ -407,16 +384,7 @@ fun BudgetDetailView(
     if (showDatePicker.value) {
         val state = rememberDatePickerState(initialSelectedDateMillis = dialogTimestamp)
         DatePickerDialog(onDismissRequest = { showDatePicker.value = false }, 
-            confirmButton = { 
-                TextButton(onClick = { 
-                    dialogTimestamp = state.selectedDateMillis ?: dialogTimestamp
-                    showDatePicker.value = false 
-                }) { Text("OK") } 
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker.value = false }) { Text("Cancel") }
-            }
-        ) {
+            confirmButton = { TextButton(onClick = { dialogTimestamp = state.selectedDateMillis ?: dialogTimestamp; showDatePicker.value = false }) { Text("OK") } }) {
             DatePicker(state = state)
         }
     }
@@ -445,11 +413,7 @@ fun BudgetDetailView(
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { showFilterDialog.value = false }) { Text("Cancel") }
-                        TextButton(onClick = { 
-                            selectedMonth = tempMonth
-                            selectedYear = tempYear
-                            showFilterDialog.value = false 
-                        }) { Text("Apply") }
+                        TextButton(onClick = { selectedMonth = tempMonth; selectedYear = tempYear; showFilterDialog.value = false }) { Text("Apply") }
                     }
                 }
             },
@@ -462,15 +426,8 @@ fun BudgetDetailView(
             onDismissRequest = { deleteTarget.value = null },
             title = { Text("Delete Expense") },
             text = { Text("Are you sure you want to delete ${deleteTarget.value?.title}?") },
-            confirmButton = { 
-                TextButton(onClick = { 
-                    onDeleteExpense(deleteTarget.value!!)
-                    deleteTarget.value = null 
-                }) { Text("Delete") } 
-            },
-            dismissButton = { 
-                TextButton(onClick = { deleteTarget.value = null }) { Text("Cancel") } 
-            }
+            confirmButton = { TextButton(onClick = { onDeleteExpense(deleteTarget.value!!); deleteTarget.value = null }) { Text("Delete") } },
+            dismissButton = { TextButton(onClick = { deleteTarget.value = null }) { Text("Cancel") } }
         )
     }
 }
