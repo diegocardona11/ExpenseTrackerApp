@@ -35,6 +35,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -179,6 +180,7 @@ fun HomeScreen(
             onAddExpense = onAddExpense,
             onUpdateExpense = onUpdateExpense,
             onDeleteExpense = onDeleteExpense,
+            onUpdateBudget = onUpdateBudget,
             modifier = modifier
         )
     }
@@ -244,7 +246,6 @@ fun BudgetCard(
                 Text(budget.name, style = MaterialTheme.typography.titleLarge)
                 Text("$${"%.2f".format(totalSpent)} of $${"%.2f".format(budget.amount)} spent")
                 
-                // Days left logic
                 if (budget.endDate > 0L) {
                     val daysLeft = ((budget.endDate - System.currentTimeMillis()) / (1000 * 60 * 60 * 24)).toInt()
                     val statusText = when {
@@ -302,7 +303,8 @@ fun EditBudgetDialog(budget: Budget, onDismiss: () -> Unit, onConfirm: (Budget) 
     ) {
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
-            tonalElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
             modifier = Modifier.padding(16.dp).fillMaxWidth().wrapContentHeight()
         ) {
             Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
@@ -320,7 +322,13 @@ fun EditBudgetDialog(budget: Budget, onDismiss: () -> Unit, onConfirm: (Budget) 
                 Spacer(modifier = Modifier.height(16.dp))
                 Text("Set End Date", style = MaterialTheme.typography.labelLarge)
                 Spacer(modifier = Modifier.height(8.dp))
-                DatePicker(state = datePickerState, showModeToggle = false, title = null, headline = null)
+                DatePicker(
+                    state = datePickerState,
+                    showModeToggle = false,
+                    title = null,
+                    headline = null,
+                    colors = DatePickerDefaults.colors(containerColor = Color.Transparent)
+                )
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = { onDismiss() }) { Text("Cancel") }
@@ -348,8 +356,9 @@ fun AddBudgetDialog(onDismiss: () -> Unit, onConfirm: (String, Double, Long) -> 
     ) {
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
-            tonalElevation = 6.dp,
-            modifier = Modifier.padding(16.dp).fillMaxWidth().wrapContentHeight()
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
+            modifier = Modifier.padding(8.dp).fillMaxWidth().wrapContentHeight()
         ) {
             Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
                 Text("New Budget", style = MaterialTheme.typography.headlineSmall)
@@ -366,7 +375,13 @@ fun AddBudgetDialog(onDismiss: () -> Unit, onConfirm: (String, Double, Long) -> 
                 Spacer(modifier = Modifier.height(16.dp))
                 Text("Set End Date", style = MaterialTheme.typography.labelLarge)
                 Spacer(modifier = Modifier.height(8.dp))
-                DatePicker(state = datePickerState, showModeToggle = false, title = null, headline = null)
+                DatePicker(
+                    state = datePickerState,
+                    showModeToggle = false,
+                    title = null,
+                    headline = null,
+                    colors = DatePickerDefaults.colors(containerColor = Color.Transparent)
+                )
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = { onDismiss() }) { Text("Cancel") }
@@ -390,11 +405,12 @@ fun BudgetDetailView(
     onAddExpense: (String, Double, String, Int, Long) -> Unit,
     onUpdateExpense: (Expense) -> Unit,
     onDeleteExpense: (Expense) -> Unit,
+    onUpdateBudget: (Budget) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var selectedMonth by remember { mutableIntStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
     var selectedYear by remember { mutableIntStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
-    val showFilterDialog = remember { mutableStateOf(false) }
+    val showEditDateDialog = remember { mutableStateOf(false) }
 
     val filteredExpenses = expenses.filter {
         val cal = Calendar.getInstance().apply { timeInMillis = it.timestamp }
@@ -439,12 +455,14 @@ fun BudgetDetailView(
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
-                        val calendar = Calendar.getInstance().apply { set(Calendar.MONTH, selectedMonth); set(Calendar.YEAR, selectedYear) }
-                        val monthName = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(calendar.time)
+                        val headerDate = if (budget.endDate > 0L) Date(budget.endDate) else {
+                            Calendar.getInstance().apply { set(Calendar.MONTH, selectedMonth); set(Calendar.YEAR, selectedYear) }.time
+                        }
+                        val monthName = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(headerDate)
                         Text(monthName, style = MaterialTheme.typography.titleMedium)
                         Text(cycleStatus, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                     }
-                    IconButton(onClick = { showFilterDialog.value = true }) { Icon(Icons.AutoMirrored.Filled.List, "Filter") }
+                    IconButton(onClick = { showEditDateDialog.value = true }) { Icon(Icons.Default.DateRange, "Edit Date") }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -504,7 +522,8 @@ fun BudgetDetailView(
         ) {
             Surface(
                 shape = MaterialTheme.shapes.extraLarge,
-                tonalElevation = 6.dp,
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp,
                 modifier = Modifier
                     .padding(16.dp)
                     .fillMaxWidth()
@@ -535,14 +554,14 @@ fun BudgetDetailView(
                         }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Calendar", style = MaterialTheme.typography.labelLarge)
-                    Text("Pick a date", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Select Date", style = MaterialTheme.typography.labelLarge)
                     Spacer(modifier = Modifier.height(8.dp))
                     DatePicker(
                         state = datePickerState,
                         showModeToggle = false,
                         title = null,
                         headline = null,
+                        colors = DatePickerDefaults.colors(containerColor = Color.Transparent),
                         modifier = Modifier.fillMaxWidth()
                     )
                     if (showAdvanced.value) {
@@ -579,23 +598,24 @@ fun BudgetDetailView(
         }
     }
 
-    if (showFilterDialog.value) {
+    if (showEditDateDialog.value) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = Calendar.getInstance().apply {
+            initialSelectedDateMillis = if (budget.endDate > 0L) budget.endDate else Calendar.getInstance().apply {
                 set(Calendar.YEAR, selectedYear)
                 set(Calendar.MONTH, selectedMonth)
                 set(Calendar.DAY_OF_MONTH, 1)
             }.timeInMillis
         )
         Dialog(
-            onDismissRequest = { showFilterDialog.value = false },
+            onDismissRequest = { showEditDateDialog.value = false },
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
             Surface(
                 shape = MaterialTheme.shapes.extraLarge,
-                tonalElevation = 6.dp,
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp,
                 modifier = Modifier
-                    .padding(16.dp)
+                    .padding(8.dp)
                     .fillMaxWidth()
                     .wrapContentHeight()
             ) {
@@ -604,27 +624,28 @@ fun BudgetDetailView(
                         .padding(24.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
-                    Text("Filter by Month", style = MaterialTheme.typography.headlineSmall)
+                    Text("Set Budget End Date", style = MaterialTheme.typography.headlineSmall)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Calendar", style = MaterialTheme.typography.labelLarge)
-                    Text("Pick a date", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Choose when this budget ends to track days left.", style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.height(8.dp))
                     DatePicker(
                         state = datePickerState,
                         showModeToggle = false,
                         title = null,
                         headline = null,
+                        colors = DatePickerDefaults.colors(containerColor = Color.Transparent),
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = { showFilterDialog.value = false }) { Text("Cancel") }
+                        TextButton(onClick = { showEditDateDialog.value = false }) { Text("Cancel") }
                         TextButton(onClick = { 
                             val dateMillis = datePickerState.selectedDateMillis ?: System.currentTimeMillis()
+                            onUpdateBudget(budget.copy(endDate = dateMillis))
                             val cal = Calendar.getInstance().apply { timeInMillis = dateMillis }
                             selectedMonth = cal.get(Calendar.MONTH)
                             selectedYear = cal.get(Calendar.YEAR)
-                            showFilterDialog.value = false 
+                            showEditDateDialog.value = false
                         }) { Text("Apply") }
                     }
                 }

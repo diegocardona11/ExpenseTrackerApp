@@ -54,21 +54,22 @@ class MainActivity : ComponentActivity() {
                 val expenses by expenseViewModel.expenses.collectAsState()
                 val budgets by expenseViewModel.budgets.collectAsState()
                 
-                var selectedBudget by remember { mutableStateOf<Budget?>(null) }
+                var selectedBudgetId by remember { mutableStateOf<Int?>(null) }
+                val currentBudget = budgets.find { it.id == selectedBudgetId }
 
-                if (selectedBudget != null) {
+                if (selectedBudgetId != null) {
                     BackHandler {
-                        selectedBudget = null
+                        selectedBudgetId = null
                     }
                 }
 
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text(selectedBudget?.name ?: "Expense Tracker") },
+                            title = { Text(currentBudget?.name ?: "Expense Tracker") },
                             navigationIcon = {
-                                if (selectedBudget != null) {
-                                    IconButton(onClick = { selectedBudget = null }) {
+                                if (selectedBudgetId != null) {
+                                    IconButton(onClick = { selectedBudgetId = null }) {
                                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                                     }
                                 }
@@ -85,8 +86,8 @@ class MainActivity : ComponentActivity() {
                     HomeScreen(
                         expenses = expenses,
                         budgets = budgets,
-                        selectedBudget = selectedBudget,
-                        onBudgetSelected = { selectedBudget = it },
+                        selectedBudget = currentBudget,
+                        onBudgetSelected = { selectedBudgetId = it?.id },
                         onAddBudget = { name, amount, endDate ->
                             expenseViewModel.addBudget(name, amount, endDate)
                         },
