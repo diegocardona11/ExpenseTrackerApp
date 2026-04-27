@@ -34,7 +34,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.expensetracker.data.Budget
 import com.example.expensetracker.ui.theme.ExpenseTrackerTheme
 import com.example.expensetracker.viewmodel.AuthViewModel
 import com.example.expensetracker.viewmodel.ExpenseViewModel
@@ -109,7 +108,8 @@ class MainActivity : ComponentActivity() {
                                     // Settings button in top right
                                     SettingsMenu(
                                         isDarkMode = themeViewModel.isDarkMode,
-                                        onToggleDarkMode = { themeViewModel.toggleTheme() }
+                                        onToggleDarkMode = { themeViewModel.toggleTheme() },
+                                        onLogout = { authViewModel.logout() }
                                     )
                                 }
                             )
@@ -152,7 +152,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun SettingsMenu(
     isDarkMode: Boolean,
-    onToggleDarkMode: () -> Unit
+    onToggleDarkMode: () -> Unit,
+    onLogout: () -> Unit // called when user clicks logout
 ) {
     // Tracks if the menu is open or closed
     var expanded by remember { mutableStateOf(false) }
@@ -168,13 +169,13 @@ fun SettingsMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
+            // Dark mode toggle
             DropdownMenuItem(
                 text = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(horizontal = 8.dp)
                     ) {
-
                         Text("Night Mode")
                         Spacer(modifier = Modifier.width(16.dp))
                         // Toggle switch for dark mode
@@ -184,7 +185,15 @@ fun SettingsMenu(
                         )
                     }
                 },
-                onClick = { /* Switch handles the interaction */ }
+                onClick = { }
+            )
+            // Logout button
+            DropdownMenuItem(
+                text = { Text("Logout") },
+                onClick = {
+                    expanded = false
+                    onLogout()
+                }
             )
         }
     }
