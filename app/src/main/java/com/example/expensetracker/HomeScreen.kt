@@ -411,6 +411,7 @@ fun BudgetDetailView(
     var selectedMonth by remember { mutableIntStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
     var selectedYear by remember { mutableIntStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
     val showEditDateDialog = remember { mutableStateOf(false) }
+    val showEditAmountDialog = remember { mutableStateOf(false) }
 
     val filteredExpenses = expenses.filter {
         val cal = Calendar.getInstance().apply { timeInMillis = it.timestamp }
@@ -454,7 +455,7 @@ fun BudgetDetailView(
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column {
+                    Column(modifier = Modifier.clickable { showEditDateDialog.value = true }) {
                         val headerDate = if (budget.endDate > 0L) Date(budget.endDate) else {
                             Calendar.getInstance().apply { set(Calendar.MONTH, selectedMonth); set(Calendar.YEAR, selectedYear) }.time
                         }
@@ -462,7 +463,6 @@ fun BudgetDetailView(
                         Text(monthName, style = MaterialTheme.typography.titleMedium)
                         Text(cycleStatus, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                     }
-                    IconButton(onClick = { showEditDateDialog.value = true }) { Icon(Icons.Default.DateRange, "Edit Date") }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -470,8 +470,10 @@ fun BudgetDetailView(
                         Text("Spent", style = MaterialTheme.typography.labelMedium)
                         Text("$${"%.2f".format(totalSpent)}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Budget", style = MaterialTheme.typography.labelMedium)
-                        Text("$${"%.2f".format(totalBudget)}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Column(modifier = Modifier.clickable { showEditAmountDialog.value = true }) {
+                            Text("Budget", style = MaterialTheme.typography.labelMedium)
+                            Text("$${"%.2f".format(totalBudget)}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        }
                     }
                     if (filteredExpenses.isNotEmpty() && isPieChartVisible.value) {
                         CategoryPieChart(expenses = filteredExpenses, modifier = Modifier.padding(start = 16.dp))
@@ -651,6 +653,35 @@ fun BudgetDetailView(
                 }
             }
         }
+    }
+
+    if (showEditAmountDialog.value) {
+        var amountText by remember { mutableStateOf(budget.amount.toString()) }
+        AlertDialog(
+            onDismissRequest = { showEditAmountDialog.value = false },
+            title = { Text("Edit Budget Amount") },
+            text = {
+                OutlinedTextField(
+                    value = amountText,
+                    onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) amountText = it },
+                    label = { Text("Limit Amount") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val amt = amountText.toDoubleOrNull() ?: 0.0
+                    if (amt > 0) {
+                        onUpdateBudget(budget.copy(amount = amt))
+                        showEditAmountDialog.value = false
+                    }
+                }) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditAmountDialog.value = false }) { Text("Cancel") }
+            }
+        )
     }
 
     if (deleteTarget.value != null) {
