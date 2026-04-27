@@ -21,11 +21,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -115,12 +119,16 @@ fun HomeScreen(
     selectedBudget: Budget?,
     onBudgetSelected: (Budget?) -> Unit,
     onAddBudget: (String, Double) -> Unit,
+    onUpdateBudget: (Budget) -> Unit,
+    onDeleteBudget: (Budget) -> Unit,
     onAddExpense: (String, Double, String, Int, Long) -> Unit,
     onUpdateExpense: (Expense) -> Unit,
     onDeleteExpense: (Expense) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val showAddBudgetDialog = remember { mutableStateOf(false) }
+    var budgetToEdit by remember { mutableStateOf<Budget?>(null) }
+    var budgetToDelete by remember { mutableStateOf<Budget?>(null) }
 
     if (selectedBudget == null) {
         // Main list of budgets
@@ -143,27 +151,13 @@ fun HomeScreen(
                     items(budgets) { budget ->
                         val budgetExpenses = expenses.filter { it.budgetId == budget.id }
                         val totalSpent = budgetExpenses.sumOf { it.amount }
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                                .clickable { onBudgetSelected(budget) }
-                        ) {
-                            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text(budget.icon, modifier = Modifier.padding(end = 16.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(budget.name, style = MaterialTheme.typography.titleLarge)
-                                    Text("$${"%.2f".format(totalSpent)} of $${"%.2f".format(budget.amount)} spent")
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    val progress = if (budget.amount > 0) (totalSpent / budget.amount).toFloat().coerceAtMost(1f) else 0f
-                                    LinearProgressIndicator(
-                                        progress = { progress },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        strokeCap = StrokeCap.Round
-                                    )
-                                }
-                            }
-                        }
+                        BudgetCard(
+                            budget = budget,
+                            totalSpent = totalSpent,
+                            onSelect = { onBudgetSelected(budget) },
+                            onEdit = { budgetToEdit = budget },
+                            onDelete = { budgetToDelete = budget }
+                        )
                     }
                 }
             }
@@ -188,6 +182,121 @@ fun HomeScreen(
             }
         )
     }
+
+    if (budgetToEdit != null) {
+        EditBudgetDialog(
+            budget = budgetToEdit!!,
+            onDismiss = { budgetToEdit = null },
+            onConfirm = { updatedBudget ->
+                onUpdateBudget(updatedBudget)
+                budgetToEdit = null
+            }
+        )
+    }
+
+    if (budgetToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { budgetToDelete = null },
+            title = { Text("Delete Budget") },
+            text = { Text("Are you sure you want to delete '${budgetToDelete?.name}'? All expenses for this budget will also be deleted.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    onDeleteBudget(budgetToDelete!!)
+                    budgetToDelete = null
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { budgetToDelete = null }) { Text("Cancel") }
+            }
+        )
+    }
+}
+
+@Composable
+fun BudgetCard(
+    budget: Budget,
+    totalSpent: Double,
+    onSelect: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .clickable { onSelect() }
+    ) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(budget.icon, modifier = Modifier.padding(end = 16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(budget.name, style = MaterialTheme.typography.titleLarge)
+                Text("$${"%.2f".format(totalSpent)} of $${"%.2f".format(budget.amount)} spent")
+                Spacer(modifier = Modifier.height(8.dp))
+                val progress = if (budget.amount > 0) (totalSpent / budget.amount).toFloat().coerceAtMost(1f) else 0f
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth(),
+                    strokeCap = StrokeCap.Round
+                )
+            }
+            Box {
+                IconButton(onClick = { expanded = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Budget Options")
+                }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Edit") },
+                        onClick = { 
+                            expanded = false
+                            onEdit() 
+                        },
+                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Delete") },
+                        onClick = { 
+                            expanded = false
+                            onDelete() 
+                        },
+                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EditBudgetDialog(budget: Budget, onDismiss: () -> Unit, onConfirm: (Budget) -> Unit) {
+    var name by remember { mutableStateOf(budget.name) }
+    var amount by remember { mutableStateOf(budget.amount.toString()) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Budget") },
+        text = {
+            Column {
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Budget Name") })
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) amount = it },
+                    label = { Text("Limit Amount") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { 
+                val amt = amount.toDoubleOrNull() ?: 0.0
+                if (name.isNotBlank() && amt > 0) onConfirm(budget.copy(name = name, amount = amt))
+            }) { Text("Save") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 @Composable

@@ -90,6 +90,12 @@ class MainActivity : ComponentActivity() {
                         onAddBudget = { name, amount ->
                             expenseViewModel.addBudget(name, amount)
                         },
+                        onUpdateBudget = { budget ->
+                            expenseViewModel.updateBudget(budget)
+                        },
+                        onDeleteBudget = { budget ->
+                            expenseViewModel.deleteBudget(budget.id)
+                        },
                         onAddExpense = { title, amount, category, budgetId, timestamp ->
                             expenseViewModel.addExpense(title, amount, category, budgetId, timestamp)
                         },
