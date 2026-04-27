@@ -693,4 +693,4 @@ fun BudgetDetailView(
             dismissButton = { TextButton(onClick = { deleteTarget.value = null }) { Text("Cancel") } }
         )
     }
-}S
+}
