@@ -174,6 +174,7 @@ fun SettingsMenu(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(horizontal = 8.dp)
                     ) {
+
                         Text("Night Mode")
                         Spacer(modifier = Modifier.width(16.dp))
                         // Toggle switch for dark mode
