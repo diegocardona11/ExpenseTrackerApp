@@ -47,4 +47,9 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+    // Logs the user out by setting isLoggedIn to false
+    fun logout() {
+        isLoggedIn = false
+        errorMessage = ""
+    }
 }
