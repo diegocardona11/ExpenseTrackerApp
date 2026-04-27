@@ -26,7 +26,7 @@ fun HomeScreenPreview() {
                 budgets = emptyList(),
                 selectedBudget = null,
                 onBudgetSelected = { },
-                onAddBudget = { _, _, _ -> },
+                onAddBudget = { _, _ -> },
                 onUpdateBudget = { },
                 onDeleteBudget = { },
                 onAddExpense = { _, _, _, _, _ -> },
