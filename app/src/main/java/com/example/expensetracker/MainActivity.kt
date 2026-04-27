@@ -87,8 +87,8 @@ class MainActivity : ComponentActivity() {
                         budgets = budgets,
                         selectedBudget = selectedBudget,
                         onBudgetSelected = { selectedBudget = it },
-                        onAddBudget = { name, amount ->
-                            expenseViewModel.addBudget(name, amount)
+                        onAddBudget = { name, amount, endDate ->
+                            expenseViewModel.addBudget(name, amount, endDate)
                         },
                         onUpdateBudget = { budget ->
                             expenseViewModel.updateBudget(budget)

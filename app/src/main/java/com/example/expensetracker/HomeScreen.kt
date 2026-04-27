@@ -3,10 +3,12 @@
 package com.example.expensetracker
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,9 +16,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
@@ -27,6 +33,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
@@ -40,6 +47,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -59,6 +67,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.expensetracker.data.Budget
 import com.example.expensetracker.data.Expense
 import java.text.SimpleDateFormat
@@ -118,7 +128,7 @@ fun HomeScreen(
     budgets: List<Budget>,
     selectedBudget: Budget?,
     onBudgetSelected: (Budget?) -> Unit,
-    onAddBudget: (String, Double) -> Unit,
+    onAddBudget: (String, Double, Long) -> Unit,
     onUpdateBudget: (Budget) -> Unit,
     onDeleteBudget: (Budget) -> Unit,
     onAddExpense: (String, Double, String, Int, Long) -> Unit,
@@ -176,8 +186,8 @@ fun HomeScreen(
     if (showAddBudgetDialog.value) {
         AddBudgetDialog(
             onDismiss = { showAddBudgetDialog.value = false },
-            onConfirm = { name, amount ->
-                onAddBudget(name, amount)
+            onConfirm = { name, amount, endDate ->
+                onAddBudget(name, amount, endDate)
                 showAddBudgetDialog.value = false
             }
         )
@@ -198,7 +208,7 @@ fun HomeScreen(
         AlertDialog(
             onDismissRequest = { budgetToDelete = null },
             title = { Text("Delete Budget") },
-            text = { Text("Are you sure you want to delete '${budgetToDelete?.name}'? All expenses for this budget will also be deleted.") },
+            text = { Text("Are you sure you want to delete '${budgetToDelete?.name}'?") },
             confirmButton = {
                 TextButton(onClick = {
                     onDeleteBudget(budgetToDelete!!)
@@ -233,6 +243,18 @@ fun BudgetCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(budget.name, style = MaterialTheme.typography.titleLarge)
                 Text("$${"%.2f".format(totalSpent)} of $${"%.2f".format(budget.amount)} spent")
+                
+                // Days left logic
+                if (budget.endDate > 0L) {
+                    val daysLeft = ((budget.endDate - System.currentTimeMillis()) / (1000 * 60 * 60 * 24)).toInt()
+                    val statusText = when {
+                        daysLeft < 0 -> "Cycle finished"
+                        daysLeft == 0 -> "Ends today"
+                        else -> "$daysLeft days left"
+                    }
+                    Text(statusText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                }
+
                 Spacer(modifier = Modifier.height(8.dp))
                 val progress = if (budget.amount > 0) (totalSpent / budget.amount).toFloat().coerceAtMost(1f) else 0f
                 LinearProgressIndicator(
@@ -272,62 +294,92 @@ fun BudgetCard(
 fun EditBudgetDialog(budget: Budget, onDismiss: () -> Unit, onConfirm: (Budget) -> Unit) {
     var name by remember { mutableStateOf(budget.name) }
     var amount by remember { mutableStateOf(budget.amount.toString()) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Edit Budget") },
-        text = {
-            Column {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Budget Name") })
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = if(budget.endDate > 0) budget.endDate else null)
+
+    Dialog(
+        onDismissRequest = { onDismiss() },
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            tonalElevation = 6.dp,
+            modifier = Modifier.padding(16.dp).fillMaxWidth().wrapContentHeight()
+        ) {
+            Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
+                Text("Edit Budget", style = MaterialTheme.typography.headlineSmall)
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Budget Name") }, modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) amount = it },
                     label = { Text("Limit Amount") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Set End Date", style = MaterialTheme.typography.labelLarge)
+                Spacer(modifier = Modifier.height(8.dp))
+                DatePicker(state = datePickerState, showModeToggle = false, title = null, headline = null)
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = { onDismiss() }) { Text("Cancel") }
+                    TextButton(onClick = { 
+                        val amt = amount.toDoubleOrNull() ?: 0.0
+                        if (name.isNotBlank() && amt > 0) {
+                            onConfirm(budget.copy(name = name, amount = amt, endDate = datePickerState.selectedDateMillis ?: 0L))
+                        }
+                    }) { Text("Save") }
+                }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = { 
-                val amt = amount.toDoubleOrNull() ?: 0.0
-                if (name.isNotBlank() && amt > 0) onConfirm(budget.copy(name = name, amount = amt))
-            }) { Text("Save") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
-    )
+    }
 }
 
 @Composable
-fun AddBudgetDialog(onDismiss: () -> Unit, onConfirm: (String, Double) -> Unit) {
+fun AddBudgetDialog(onDismiss: () -> Unit, onConfirm: (String, Double, Long) -> Unit) {
     var name by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("New Budget") },
-        text = {
-            Column {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Budget Name") })
+    val datePickerState = rememberDatePickerState()
+
+    Dialog(
+        onDismissRequest = { onDismiss() },
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            tonalElevation = 6.dp,
+            modifier = Modifier.padding(16.dp).fillMaxWidth().wrapContentHeight()
+        ) {
+            Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
+                Text("New Budget", style = MaterialTheme.typography.headlineSmall)
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Budget Name") }, modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) amount = it },
                     label = { Text("Limit Amount") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Set End Date", style = MaterialTheme.typography.labelLarge)
+                Spacer(modifier = Modifier.height(8.dp))
+                DatePicker(state = datePickerState, showModeToggle = false, title = null, headline = null)
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = { onDismiss() }) { Text("Cancel") }
+                    TextButton(onClick = { 
+                        val amt = amount.toDoubleOrNull() ?: 0.0
+                        if (name.isNotBlank() && amt > 0) {
+                            onConfirm(name, amt, datePickerState.selectedDateMillis ?: 0L)
+                        }
+                    }) { Text("Create") }
+                }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = { 
-                val amt = amount.toDoubleOrNull() ?: 0.0
-                if (name.isNotBlank() && amt > 0) onConfirm(name, amt)
-            }) { Text("Create") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
-    )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -353,18 +405,28 @@ fun BudgetDetailView(
     val totalBudget = budget.amount
 
     val today = Calendar.getInstance()
-    val cycleStatus = if (selectedMonth == today.get(Calendar.MONTH) && selectedYear == today.get(Calendar.YEAR)) {
-        val daysLeft = today.getActualMaximum(Calendar.DAY_OF_MONTH) - today.get(Calendar.DAY_OF_MONTH)
-        if (daysLeft == 0) "Cycle ends today" else "Ends in $daysLeft days"
-    } else if (selectedYear < today.get(Calendar.YEAR) || (selectedYear == today.get(Calendar.YEAR) && selectedMonth < today.get(Calendar.MONTH))) {
-        "Cycle finished"
-    } else "Cycle starts later"
+    
+    // Updated cycleStatus logic using budget.endDate if available
+    val cycleStatus = if (budget.endDate > 0L) {
+        val daysLeft = ((budget.endDate - System.currentTimeMillis()) / (1000 * 60 * 60 * 24)).toInt()
+        when {
+            daysLeft < 0 -> "Cycle finished"
+            daysLeft == 0 -> "Cycle ends today"
+            else -> "Ends in $daysLeft days"
+        }
+    } else {
+        if (selectedMonth == today.get(Calendar.MONTH) && selectedYear == today.get(Calendar.YEAR)) {
+            val daysLeft = today.getActualMaximum(Calendar.DAY_OF_MONTH) - today.get(Calendar.DAY_OF_MONTH)
+            if (daysLeft == 0) "Cycle ends today" else "Ends in $daysLeft days"
+        } else if (selectedYear < today.get(Calendar.YEAR) || (selectedYear == today.get(Calendar.YEAR) && selectedMonth < today.get(Calendar.MONTH))) {
+            "Cycle finished"
+        } else "Cycle starts later"
+    }
 
     var dialogTitle by remember { mutableStateOf("") }
     var dialogAmount by remember { mutableStateOf("") }
     var dialogCategory by remember { mutableStateOf("Food") }
     var dialogTimestamp by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    val showDatePicker = remember { mutableStateOf(false) }
     val isPieChartVisible = remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf("") }
     val editingExpense: MutableState<Expense?> = remember { mutableStateOf(null) }
@@ -435,13 +497,30 @@ fun BudgetDetailView(
     }
 
     if (showEditorDialog.value) {
-        AlertDialog(
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dialogTimestamp)
+        Dialog(
             onDismissRequest = { showEditorDialog.value = false },
-            title = { Text(if (editingExpense.value == null) "Add Expense" else "Edit Expense") },
-            text = {
-                Column {
-                    OutlinedTextField(value = dialogTitle, onValueChange = { dialogTitle = it }, label = { Text("Title") })
-                    OutlinedTextField(value = dialogAmount, onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) dialogAmount = it }, label = { Text("Amount") })
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                shape = MaterialTheme.shapes.extraLarge,
+                tonalElevation = 6.dp,
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(24.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(if (editingExpense.value == null) "Add Expense" else "Edit Expense", style = MaterialTheme.typography.headlineSmall)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(value = dialogTitle, onValueChange = { dialogTitle = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(value = dialogAmount, onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) dialogAmount = it }, label = { Text("Amount") }, modifier = Modifier.fillMaxWidth())
+                    Spacer(modifier = Modifier.height(8.dp))
                     var expanded by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
                         OutlinedTextField(
@@ -455,9 +534,17 @@ fun BudgetDetailView(
                             }
                         }
                     }
-                    val formattedDate = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date(dialogTimestamp))
-                    OutlinedTextField(value = formattedDate, onValueChange = {}, readOnly = true, label = { Text("Date") },
-                        trailingIcon = { IconButton(onClick = { showDatePicker.value = true }) { Icon(Icons.Default.DateRange, "Date") } })
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Calendar", style = MaterialTheme.typography.labelLarge)
+                    Text("Pick a date", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    DatePicker(
+                        state = datePickerState,
+                        showModeToggle = false,
+                        title = null,
+                        headline = null,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                     if (showAdvanced.value) {
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Show Pie Chart", style = MaterialTheme.typography.bodyLarge)
@@ -470,64 +557,79 @@ fun BudgetDetailView(
                     TextButton(onClick = { showAdvanced.value = !showAdvanced.value }) {
                         Text(if (showAdvanced.value) "Hide Advanced" else "Show Advanced")
                     }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    val amt = dialogAmount.toDoubleOrNull() ?: 0.0
-                    val decimalPart = dialogAmount.substringAfter(".", "")
-                    if (dialogTitle.isBlank()) errorMessage = "Please enter a title"
-                    else if (amt <= 0) errorMessage = "Please enter a valid amount"
-                    else if (dialogAmount.contains(".") && decimalPart.length > 2) errorMessage = "Max 2 decimal places"
-                    else {
-                        if (editingExpense.value == null) onAddExpense(dialogTitle, amt, dialogCategory, budget.id, dialogTimestamp)
-                        else onUpdateExpense(editingExpense.value!!.copy(title = dialogTitle, amount = amt, category = dialogCategory, timestamp = dialogTimestamp))
-                        showEditorDialog.value = false
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = { showEditorDialog.value = false }) { Text("Cancel") }
+                        TextButton(onClick = {
+                            val amt = dialogAmount.toDoubleOrNull() ?: 0.0
+                            val decimalPart = dialogAmount.substringAfter(".", "")
+                            val selectedDate = datePickerState.selectedDateMillis ?: dialogTimestamp
+                            if (dialogTitle.isBlank()) errorMessage = "Please enter a title"
+                            else if (amt <= 0) errorMessage = "Please enter a valid amount"
+                            else if (dialogAmount.contains(".") && decimalPart.length > 2) errorMessage = "Max 2 decimal places"
+                            else {
+                                if (editingExpense.value == null) onAddExpense(dialogTitle, amt, dialogCategory, budget.id, selectedDate)
+                                else onUpdateExpense(editingExpense.value!!.copy(title = dialogTitle, amount = amt, category = dialogCategory, timestamp = selectedDate))
+                                showEditorDialog.value = false
+                            }
+                        }) { Text("Save") }
                     }
-                }) { Text("Save") }
-            },
-            dismissButton = { TextButton(onClick = { showEditorDialog.value = false }) { Text("Cancel") } }
-        )
-    }
-    
-    if (showDatePicker.value) {
-        val state = rememberDatePickerState(initialSelectedDateMillis = dialogTimestamp)
-        DatePickerDialog(onDismissRequest = { showDatePicker.value = false }, 
-            confirmButton = { TextButton(onClick = { dialogTimestamp = state.selectedDateMillis ?: dialogTimestamp; showDatePicker.value = false }) { Text("OK") } }) {
-            DatePicker(state = state)
+                }
+            }
         }
     }
 
     if (showFilterDialog.value) {
-        AlertDialog(
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = Calendar.getInstance().apply {
+                set(Calendar.YEAR, selectedYear)
+                set(Calendar.MONTH, selectedMonth)
+                set(Calendar.DAY_OF_MONTH, 1)
+            }.timeInMillis
+        )
+        Dialog(
             onDismissRequest = { showFilterDialog.value = false },
-            title = { Text("Filter by Month") },
-            text = {
-                Column {
-                    val months = listOf("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
-                    var tempMonth by remember { mutableIntStateOf(selectedMonth) }
-                    var tempYear by remember { mutableIntStateOf(selectedYear) }
-                    var monthExpanded by remember { mutableStateOf(false) }
-                    ExposedDropdownMenuBox(expanded = monthExpanded, onExpandedChange = { monthExpanded = it }) {
-                        OutlinedTextField(
-                            value = months[tempMonth], onValueChange = {}, readOnly = true, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = monthExpanded) }
-                        )
-                        ExposedDropdownMenu(expanded = monthExpanded, onDismissRequest = { monthExpanded = false }) {
-                            months.forEachIndexed { index, name -> DropdownMenuItem(text = { Text(name) }, onClick = { tempMonth = index; monthExpanded = false }) }
-                        }
-                    }
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                shape = MaterialTheme.shapes.extraLarge,
+                tonalElevation = 6.dp,
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(24.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text("Filter by Month", style = MaterialTheme.typography.headlineSmall)
                     Spacer(modifier = Modifier.height(16.dp))
-                    OutlinedTextField(value = tempYear.toString(), onValueChange = { if (it.all { c -> c.isDigit() }) tempYear = it.toIntOrNull() ?: tempYear }, label = { Text("Year") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+                    Text("Calendar", style = MaterialTheme.typography.labelLarge)
+                    Text("Pick a date", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    DatePicker(
+                        state = datePickerState,
+                        showModeToggle = false,
+                        title = null,
+                        headline = null,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { showFilterDialog.value = false }) { Text("Cancel") }
-                        TextButton(onClick = { selectedMonth = tempMonth; selectedYear = tempYear; showFilterDialog.value = false }) { Text("Apply") }
+                        TextButton(onClick = { 
+                            val dateMillis = datePickerState.selectedDateMillis ?: System.currentTimeMillis()
+                            val cal = Calendar.getInstance().apply { timeInMillis = dateMillis }
+                            selectedMonth = cal.get(Calendar.MONTH)
+                            selectedYear = cal.get(Calendar.YEAR)
+                            showFilterDialog.value = false 
+                        }) { Text("Apply") }
                     }
                 }
-            },
-            confirmButton = {}, dismissButton = {}
-        )
+            }
+        }
     }
 
     if (deleteTarget.value != null) {
