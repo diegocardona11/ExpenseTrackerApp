@@ -26,6 +26,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -76,6 +77,12 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 } else {
+                    // When user logs in pass their id to the expense viewmodel
+                    // so they only see their own data
+                    LaunchedEffect(authViewModel.currentUserId) {
+                        expenseViewModel.setUser(authViewModel.currentUserId)
+                    }
+
                     // User is logged in so show the main app
                     val expenses by expenseViewModel.expenses.collectAsState()
                     val budgets by expenseViewModel.budgets.collectAsState()
@@ -153,7 +160,7 @@ class MainActivity : ComponentActivity() {
 fun SettingsMenu(
     isDarkMode: Boolean,
     onToggleDarkMode: () -> Unit,
-    onLogout: () -> Unit // called when user clicks logout
+    onLogout: () -> Unit
 ) {
     // Tracks if the menu is open or closed
     var expanded by remember { mutableStateOf(false) }

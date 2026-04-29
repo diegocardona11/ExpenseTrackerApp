@@ -11,48 +11,72 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+// Handles all expense and budget logic for the app
 class ExpenseViewModel(application: Application) : AndroidViewModel(application) {
 
     private val db = ExpenseDatabase.getDatabase(application)
     private val expenseDao = db.expenseDao()
     private val budgetDao = db.budgetDao()
 
-    val expenses: StateFlow<List<Expense>> =
-        expenseDao.getAllExpenses().stateIn(
+    // Tracks the currently logged in user's id
+    private var currentUserId: Int = 0
+
+    // Holds the list of expenses for the current user
+    var expenses: StateFlow<List<Expense>> = expenseDao.getAllExpenses(currentUserId).stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    // Holds the list of budgets for the current user
+    var budgets: StateFlow<List<Budget>> = budgetDao.getAllBudgets(currentUserId).stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    // Called when a user logs in to load their data
+    fun setUser(userId: Int) {
+        currentUserId = userId
+        expenses = expenseDao.getAllExpenses(userId).stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
-
-    val budgets: StateFlow<List<Budget>> =
-        budgetDao.getAllBudgets().stateIn(
+        budgets = budgetDao.getAllBudgets(userId).stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+    }
 
+    // Adds a new budget for the current user
     fun addBudget(name: String, amount: Double, endDate: Long = 0L) {
         viewModelScope.launch {
-            budgetDao.insertBudget(Budget(name = name, amount = amount, endDate = endDate))
+            budgetDao.insertBudget(Budget(userId = currentUserId, name = name, amount = amount, endDate = endDate))
         }
     }
 
+    // Updates an existing budget
     fun updateBudget(budget: Budget) {
         viewModelScope.launch {
             budgetDao.updateBudget(budget)
         }
     }
 
+    // Deletes a budget by its id
     fun deleteBudget(budgetId: Int) {
         viewModelScope.launch {
             budgetDao.deleteBudget(budgetId)
         }
     }
 
+    // Adds a new expense for the current user
     fun addExpense(title: String, amount: Double, category: String, budgetId: Int, timestamp: Long) {
         viewModelScope.launch {
             expenseDao.insertExpense(
                 Expense(
+                    userId = currentUserId,
                     title = title,
                     amount = amount,
                     category = category,
@@ -63,12 +87,14 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    // Updates an existing expense
     fun updateExpense(expense: Expense) {
         viewModelScope.launch {
             expenseDao.updateExpense(expense)
         }
     }
 
+    // Deletes an expense by its id
     fun deleteExpense(expenseId: Int) {
         viewModelScope.launch {
             expenseDao.deleteExpense(expenseId)
