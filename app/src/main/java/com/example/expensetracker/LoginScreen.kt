@@ -15,72 +15,77 @@ import com.example.expensetracker.viewmodel.AuthViewModel
 @Composable
 fun LoginScreen(
     authViewModel: AuthViewModel,
-    onNavigateToCreateAccount: () -> Unit // called when user wants to create account
+    onNavigateToCreateAccount: () -> Unit
 ) {
-    // Stores what the user types
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+    // Surface makes sure the background and text colors follow dark/light mode
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        // App title
-        Text(
-            text = "Expense Tracker",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Username input box
-        OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Username") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Password input box (hides the text)
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Shows error message if login fails
-        if (authViewModel.errorMessage.isNotBlank()) {
-            Text(
-                text = authViewModel.errorMessage,
-                color = MaterialTheme.colorScheme.error
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Login button
-        Button(
-            onClick = { authViewModel.login(username, password) },
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Login")
-        }
+            // App title
+            Text(
+                text = "Expense Tracker",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold
+            )
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-        // Goes to create account screen
-        TextButton(onClick = onNavigateToCreateAccount) {
-            Text("Don't have an account? Create one")
+            // Username input box
+            OutlinedTextField(
+                value = username,
+                onValueChange = { username = it },
+                label = { Text("Username") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Password input box hides the text
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password") },
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Shows error message if login fails
+            if (authViewModel.errorMessage.isNotBlank()) {
+                Text(
+                    text = authViewModel.errorMessage,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Login button
+            Button(
+                onClick = { authViewModel.login(username, password) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Login")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Goes to create account screen
+            TextButton(onClick = onNavigateToCreateAccount) {
+                Text("Don't have an account? Create one")
+            }
         }
     }
 }

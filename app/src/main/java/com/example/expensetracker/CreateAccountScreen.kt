@@ -15,90 +15,95 @@ import com.example.expensetracker.viewmodel.AuthViewModel
 @Composable
 fun CreateAccountScreen(
     authViewModel: AuthViewModel,
-    onNavigateToLogin: () -> Unit // called when user wants to go back to login
+    onNavigateToLogin: () -> Unit
 ) {
-    // Stores what the user types
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+    // Surface makes sure the background and text colors follow dark/light mode
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        // Screen title
-        Text(
-            text = "Create Account",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Username input box
-        OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Username") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Password input box (hides the text)
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Confirm password input box
-        OutlinedTextField(
-            value = confirmPassword,
-            onValueChange = { confirmPassword = it },
-            label = { Text("Confirm Password") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Shows error message if something goes wrong
-        if (authViewModel.errorMessage.isNotBlank()) {
-            Text(
-                text = authViewModel.errorMessage,
-                color = MaterialTheme.colorScheme.error
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Create account button
-        Button(
-            onClick = {
-                if (password != confirmPassword) {
-                    authViewModel.errorMessage = "Passwords don't match"
-                } else {
-                    authViewModel.createAccount(username, password)
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Create Account")
-        }
+            // Screen title
+            Text(
+                text = "Create Account",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold
+            )
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-        // Goes back to login screen
-        TextButton(onClick = onNavigateToLogin) {
-            Text("Already have an account? Login")
+            // Username input box
+            OutlinedTextField(
+                value = username,
+                onValueChange = { username = it },
+                label = { Text("Username") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Password input box hides the text
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password") },
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Confirm password input box
+            OutlinedTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                label = { Text("Confirm Password") },
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Shows error message if something goes wrong
+            if (authViewModel.errorMessage.isNotBlank()) {
+                Text(
+                    text = authViewModel.errorMessage,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Create account button
+            Button(
+                onClick = {
+                    if (password != confirmPassword) {
+                        authViewModel.errorMessage = "Passwords don't match"
+                    } else {
+                        authViewModel.createAccount(username, password)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Create Account")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Goes back to login screen
+            TextButton(onClick = onNavigateToLogin) {
+                Text("Already have an account? Login")
+            }
         }
     }
 }
