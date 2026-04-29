@@ -1,4 +1,4 @@
-package com.example.expensetracker.ui
+package com.example.expensetracker.ui.charts
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
@@ -21,10 +21,11 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.expensetracker.data.Expense
+import com.example.expensetracker.ui.categoryColors
 
 // Draws a pie chart showing spending by category
 @Composable
-fun CategoryPieChart(expenses: List<Expense>, modifier: Modifier = Modifier) {
+fun CategoryPieChart(expenses: List<Expense>, modifier: Modifier = Modifier.Companion) {
     if (expenses.isEmpty()) return
 
     // Add up all spending
@@ -34,14 +35,14 @@ fun CategoryPieChart(expenses: List<Expense>, modifier: Modifier = Modifier) {
     val categoryTotals = expenses.groupBy { it.category }
         .mapValues { entry -> entry.value.sumOf { it.amount } }
 
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.size(120.dp)) {
+    Box(modifier = modifier, contentAlignment = Alignment.Companion.Center) {
+        Canvas(modifier = Modifier.Companion.size(120.dp)) {
             var startAngle = -90f
             // Draw each category as a slice of the pie
             categoryTotals.forEach { (category, amount) ->
                 val sweepAngle = (amount / totalSpent).toFloat() * 360f
                 drawArc(
-                    color = categoryColors[category] ?: Color.Gray,
+                    color = categoryColors[category] ?: Color.Companion.Gray,
                     startAngle = startAngle,
                     sweepAngle = sweepAngle,
                     useCenter = true
@@ -54,7 +55,7 @@ fun CategoryPieChart(expenses: List<Expense>, modifier: Modifier = Modifier) {
 
 // Shows a bar chart of spending per category
 @Composable
-fun CategoryBarChart(expenses: List<Expense>, modifier: Modifier = Modifier) {
+fun CategoryBarChart(expenses: List<Expense>, modifier: Modifier = Modifier.Companion) {
     if (expenses.isEmpty()) return
 
     // Group expenses by category and add up each one
@@ -65,32 +66,36 @@ fun CategoryBarChart(expenses: List<Expense>, modifier: Modifier = Modifier) {
     val maxAmount = categoryTotals.values.maxOrNull() ?: 1.0
 
     Column(modifier = modifier.fillMaxWidth()) {
-        Text("Spending by Category", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            "Spending by Category",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Companion.Bold
+        )
+        Spacer(modifier = Modifier.Companion.height(8.dp))
 
         // Draw a bar for each category
         categoryTotals.forEach { (category, amount) ->
             Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.Companion.fillMaxWidth().padding(vertical = 4.dp),
+                verticalAlignment = Alignment.Companion.CenterVertically
             ) {
                 // Category name on the left
                 Text(
                     text = category,
-                    modifier = Modifier.width(100.dp),
+                    modifier = Modifier.Companion.width(100.dp),
                     style = MaterialTheme.typography.labelSmall
                 )
                 // The bar itself
                 LinearProgressIndicator(
                     progress = { (amount / maxAmount).toFloat() },
-                    modifier = Modifier.weight(1f).height(12.dp),
-                    color = categoryColors[category] ?: Color.Gray,
-                    strokeCap = StrokeCap.Round
+                    modifier = Modifier.Companion.weight(1f).height(12.dp),
+                    color = categoryColors[category] ?: Color.Companion.Gray,
+                    strokeCap = StrokeCap.Companion.Round
                 )
                 // Amount on the right
                 Text(
                     text = "$${"%.0f".format(amount)}",
-                    modifier = Modifier.width(50.dp).padding(start = 8.dp),
+                    modifier = Modifier.Companion.width(50.dp).padding(start = 8.dp),
                     style = MaterialTheme.typography.labelSmall
                 )
             }
