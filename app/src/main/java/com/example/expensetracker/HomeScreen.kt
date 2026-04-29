@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -305,30 +306,37 @@ fun EditBudgetDialog(budget: Budget, onDismiss: () -> Unit, onConfirm: (Budget) 
             shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 0.dp,
-            modifier = Modifier.padding(16.dp).fillMaxWidth().wrapContentHeight()
+            modifier = Modifier
+                .padding(start = 24.dp, end = 24.dp, top = 40.dp, bottom = 120.dp)
+                .fillMaxWidth()
+                .fillMaxHeight(0.75f)
         ) {
-            Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
+            Column(modifier = Modifier.padding(24.dp)) {
                 Text("Edit Budget", style = MaterialTheme.typography.headlineSmall)
                 Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Budget Name") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = amount,
-                    onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) amount = it },
-                    label = { Text("Limit Amount") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Set End Date", style = MaterialTheme.typography.labelLarge)
-                Spacer(modifier = Modifier.height(8.dp))
-                DatePicker(
-                    state = datePickerState,
-                    showModeToggle = false,
-                    title = null,
-                    headline = null,
-                    colors = DatePickerDefaults.colors(containerColor = Color.Transparent)
-                )
+                
+                Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Budget Name") }, modifier = Modifier.fillMaxWidth())
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = amount,
+                        onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) amount = it },
+                        label = { Text("Limit Amount") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Set End Date", style = MaterialTheme.typography.labelLarge)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    DatePicker(
+                        state = datePickerState,
+                        showModeToggle = false,
+                        title = null,
+                        headline = null,
+                        colors = DatePickerDefaults.colors(containerColor = Color.Transparent)
+                    )
+                }
+                
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = { onDismiss() }) { Text("Cancel") }
@@ -358,30 +366,37 @@ fun AddBudgetDialog(onDismiss: () -> Unit, onConfirm: (String, Double, Long) -> 
             shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 0.dp,
-            modifier = Modifier.padding(8.dp).fillMaxWidth().wrapContentHeight()
+            modifier = Modifier
+                .padding(start = 24.dp, end = 24.dp, top = 40.dp, bottom = 120.dp)
+                .fillMaxWidth()
+                .fillMaxHeight(0.75f)
         ) {
-            Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
+            Column(modifier = Modifier.padding(24.dp)) {
                 Text("New Budget", style = MaterialTheme.typography.headlineSmall)
                 Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Budget Name") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = amount,
-                    onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) amount = it },
-                    label = { Text("Limit Amount") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Set End Date", style = MaterialTheme.typography.labelLarge)
-                Spacer(modifier = Modifier.height(8.dp))
-                DatePicker(
-                    state = datePickerState,
-                    showModeToggle = false,
-                    title = null,
-                    headline = null,
-                    colors = DatePickerDefaults.colors(containerColor = Color.Transparent)
-                )
+
+                Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Budget Name") }, modifier = Modifier.fillMaxWidth())
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = amount,
+                        onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) amount = it },
+                        label = { Text("Limit Amount") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Set End Date", style = MaterialTheme.typography.labelLarge)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    DatePicker(
+                        state = datePickerState,
+                        showModeToggle = false,
+                        title = null,
+                        headline = null,
+                        colors = DatePickerDefaults.colors(containerColor = Color.Transparent)
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = { onDismiss() }) { Text("Cancel") }
@@ -527,57 +542,59 @@ fun BudgetDetailView(
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 0.dp,
                 modifier = Modifier
-                    .padding(16.dp)
+                    .padding(start = 24.dp, end = 24.dp, top = 40.dp, bottom = 120.dp)
                     .fillMaxWidth()
-                    .wrapContentHeight()
+                    .fillMaxHeight(0.75f)
             ) {
                 Column(
-                    modifier = Modifier
-                        .padding(24.dp)
-                        .verticalScroll(rememberScrollState())
+                    modifier = Modifier.padding(24.dp)
                 ) {
                     Text(if (editingExpense.value == null) "Add Expense" else "Edit Expense", style = MaterialTheme.typography.headlineSmall)
                     Spacer(modifier = Modifier.height(16.dp))
-                    OutlinedTextField(value = dialogTitle, onValueChange = { dialogTitle = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(value = dialogAmount, onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) dialogAmount = it }, label = { Text("Amount") }, modifier = Modifier.fillMaxWidth())
-                    Spacer(modifier = Modifier.height(8.dp))
-                    var expanded by remember { mutableStateOf(false) }
-                    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-                        OutlinedTextField(
-                            value = dialogCategory, onValueChange = {}, readOnly = true, label = { Text("Category") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
-                        )
-                        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                            categories.forEach { category ->
-                                DropdownMenuItem(text = { Text(category) }, onClick = { dialogCategory = category; expanded = false })
+                    
+                    Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                        OutlinedTextField(value = dialogTitle, onValueChange = { dialogTitle = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(value = dialogAmount, onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) dialogAmount = it }, label = { Text("Amount") }, modifier = Modifier.fillMaxWidth())
+                        Spacer(modifier = Modifier.height(8.dp))
+                        var expanded by remember { mutableStateOf(false) }
+                        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+                            OutlinedTextField(
+                                value = dialogCategory, onValueChange = {}, readOnly = true, label = { Text("Category") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                            )
+                            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                                categories.forEach { category ->
+                                    DropdownMenuItem(text = { Text(category) }, onClick = { dialogCategory = category; expanded = false })
+                                }
                             }
                         }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Select Date", style = MaterialTheme.typography.labelLarge)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    DatePicker(
-                        state = datePickerState,
-                        showModeToggle = false,
-                        title = null,
-                        headline = null,
-                        colors = DatePickerDefaults.colors(containerColor = Color.Transparent),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    if (showAdvanced.value) {
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Show Pie Chart", style = MaterialTheme.typography.bodyLarge)
-                            Switch(checked = isPieChartVisible.value, onCheckedChange = { isPieChartVisible.value = it })
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Select Date", style = MaterialTheme.typography.labelLarge)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        DatePicker(
+                            state = datePickerState,
+                            showModeToggle = false,
+                            title = null,
+                            headline = null,
+                            colors = DatePickerDefaults.colors(containerColor = Color.Transparent),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        if (showAdvanced.value) {
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Show Pie Chart", style = MaterialTheme.typography.bodyLarge)
+                                Switch(checked = isPieChartVisible.value, onCheckedChange = { isPieChartVisible.value = it })
+                            }
+                        }
+                        if (errorMessage.isNotBlank()) {
+                            Text(text = errorMessage, color = MaterialTheme.colorScheme.error)
+                        }
+                        TextButton(onClick = { showAdvanced.value = !showAdvanced.value }) {
+                            Text(if (showAdvanced.value) "Hide Advanced" else "Show Advanced")
                         }
                     }
-                    if (errorMessage.isNotBlank()) {
-                        Text(text = errorMessage, color = MaterialTheme.colorScheme.error)
-                    }
-                    TextButton(onClick = { showAdvanced.value = !showAdvanced.value }) {
-                        Text(if (showAdvanced.value) "Hide Advanced" else "Show Advanced")
-                    }
+
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { showEditorDialog.value = false }) { Text("Cancel") }
@@ -617,27 +634,29 @@ fun BudgetDetailView(
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 0.dp,
                 modifier = Modifier
-                    .padding(8.dp)
+                    .padding(start = 24.dp, end = 24.dp, top = 40.dp, bottom = 120.dp)
                     .fillMaxWidth()
-                    .wrapContentHeight()
+                    .fillMaxHeight(0.75f)
             ) {
                 Column(
-                    modifier = Modifier
-                        .padding(24.dp)
-                        .verticalScroll(rememberScrollState())
+                    modifier = Modifier.padding(24.dp)
                 ) {
                     Text("Set Budget End Date", style = MaterialTheme.typography.headlineSmall)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Choose when this budget ends to track days left.", style = MaterialTheme.typography.bodyMedium)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    DatePicker(
-                        state = datePickerState,
-                        showModeToggle = false,
-                        title = null,
-                        headline = null,
-                        colors = DatePickerDefaults.colors(containerColor = Color.Transparent),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    
+                    Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                        Text("Choose when this budget ends to track days left.", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        DatePicker(
+                            state = datePickerState,
+                            showModeToggle = false,
+                            title = null,
+                            headline = null,
+                            colors = DatePickerDefaults.colors(containerColor = Color.Transparent),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { showEditDateDialog.value = false }) { Text("Cancel") }
