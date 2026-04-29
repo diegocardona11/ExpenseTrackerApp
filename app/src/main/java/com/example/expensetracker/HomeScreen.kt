@@ -2,13 +2,9 @@
 
 package com.example.expensetracker
 
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -16,52 +12,33 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,117 +51,22 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.expensetracker.data.Budget
 import com.example.expensetracker.data.Expense
+import com.example.expensetracker.ui.Constants
+import com.example.expensetracker.ui.TimeRange
+import com.example.expensetracker.ui.budget.AddBudgetDialog
+import com.example.expensetracker.ui.budget.BudgetCard
+import com.example.expensetracker.ui.budget.DeleteBudgetDialog
+import com.example.expensetracker.ui.budget.EditBudgetDialog
+import com.example.expensetracker.ui.charts.CategoryBarChart
+import com.example.expensetracker.ui.charts.CategoryPieChart
+import com.example.expensetracker.ui.expense.DeleteExpenseDialog
+import com.example.expensetracker.ui.expense.ExpenseEditorDialog
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-// List of expense categories for the dropdown
-val categories = listOf(
-    "Housing", "Food", "Transportation", "Gas", "Bills", "Shopping",
-    "Entertainment", "Health", "Education", "Travel", "Savings", "Other"
-)
-
-// Colors for each category used in the pie chart
-val categoryColors = mapOf(
-    "Housing" to Color(0xFFE57373),
-    "Food" to Color(0xFF81C784),
-    "Transportation" to Color(0xFF64B5F6),
-    "Gas" to Color(0xFFFFD54F),
-    "Bills" to Color(0xFFBA68C8),
-    "Shopping" to Color(0xFFF06292),
-    "Entertainment" to Color(0xFF4DB6AC),
-    "Health" to Color(0xFFFF8A65),
-    "Education" to Color(0xFF9575CD),
-    "Travel" to Color(0xFFAED581),
-    "Savings" to Color(0xFFFFB74D),
-    "Other" to Color(0xFF90A4AE)
-)
-
-// The different time range options the user can pick
-enum class TimeRange(val label: String) {
-    ONE_WEEK("1 Week"),
-    TWO_WEEKS("2 Weeks"),
-    MONTHLY("Monthly")
-}
-
-// Draws a pie chart showing spending by category
-@Composable
-fun CategoryPieChart(expenses: List<Expense>, modifier: Modifier = Modifier) {
-    if (expenses.isEmpty()) return
-
-    // Add up all spending
-    val totalSpent = expenses.sumOf { it.amount }
-
-    // Group expenses by category and add up each one
-    val categoryTotals = expenses.groupBy { it.category }
-        .mapValues { entry -> entry.value.sumOf { it.amount } }
-
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.size(120.dp)) {
-            var startAngle = -90f
-            // Draw each category as a slice of the pie
-            categoryTotals.forEach { (category, amount) ->
-                val sweepAngle = (amount / totalSpent).toFloat() * 360f
-                drawArc(
-                    color = categoryColors[category] ?: Color.Gray,
-                    startAngle = startAngle,
-                    sweepAngle = sweepAngle,
-                    useCenter = true
-                )
-                startAngle += sweepAngle
-            }
-        }
-    }
-}
-
-// Shows a bar chart of spending per category
-@Composable
-fun CategoryBarChart(expenses: List<Expense>, modifier: Modifier = Modifier) {
-    if (expenses.isEmpty()) return
-
-    // Group expenses by category and add up each one
-    val categoryTotals = expenses.groupBy { it.category }
-        .mapValues { entry -> entry.value.sumOf { it.amount } }
-
-    // Find the biggest amount so we can scale the bars
-    val maxAmount = categoryTotals.values.maxOrNull() ?: 1.0
-
-    Column(modifier = modifier.fillMaxWidth()) {
-        Text("Spending by Category", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Draw a bar for each category
-        categoryTotals.forEach { (category, amount) ->
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Category name on the left
-                Text(
-                    text = category,
-                    modifier = Modifier.width(100.dp),
-                    style = MaterialTheme.typography.labelSmall
-                )
-                // The bar itself
-                LinearProgressIndicator(
-                    progress = { (amount / maxAmount).toFloat() },
-                    modifier = Modifier.weight(1f).height(12.dp),
-                    color = categoryColors[category] ?: Color.Gray,
-                    strokeCap = StrokeCap.Round
-                )
-                // Amount on the right
-                Text(
-                    text = "$${"%.0f".format(amount)}",
-                    modifier = Modifier.width(50.dp).padding(start = 8.dp),
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
-        }
-    }
-}
-
-// Main screen that shows either the budget list or a budget's details
+// Main screen that shows either the budget list or a budget details
 @Composable
 fun HomeScreen(
     expenses: List<Expense>,
@@ -276,223 +158,14 @@ fun HomeScreen(
 
     // Show delete budget confirmation if needed
     if (budgetToDelete != null) {
-        AlertDialog(
-            onDismissRequest = { budgetToDelete = null },
-            title = { Text("Delete Budget") },
-            text = { Text("Are you sure you want to delete '${budgetToDelete?.name}'?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    onDeleteBudget(budgetToDelete!!)
-                    budgetToDelete = null
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = {
-                TextButton(onClick = { budgetToDelete = null }) { Text("Cancel") }
+        DeleteBudgetDialog(
+            budgetName = budgetToDelete!!.name,
+            onDismiss = { budgetToDelete = null },
+            onConfirm = {
+                onDeleteBudget(budgetToDelete!!)
+                budgetToDelete = null
             }
         )
-    }
-}
-
-// A single budget card shown in the budget list
-@Composable
-fun BudgetCard(
-    budget: Budget,
-    totalSpent: Double,
-    onSelect: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit
-) {
-    // Controls the dropdown menu
-    var expanded by remember { mutableStateOf(false) }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-            .clickable { onSelect() }
-    ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            // Budget icon
-            Text(budget.icon, modifier = Modifier.padding(end = 16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                // Budget name and spending info
-                Text(budget.name, style = MaterialTheme.typography.titleLarge)
-                Text("$${"%.2f".format(totalSpent)} of $${"%.2f".format(budget.amount)} spent")
-
-                // Show days left if end date is set
-                if (budget.endDate > 0L) {
-                    val daysLeft = ((budget.endDate - System.currentTimeMillis()) / (1000 * 60 * 60 * 24)).toInt()
-                    val statusText = when {
-                        daysLeft < 0 -> "Cycle finished"
-                        daysLeft == 0 -> "Ends today"
-                        else -> "$daysLeft days left"
-                    }
-                    Text(statusText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Progress bar showing how much of the budget is used
-                val progress = if (budget.amount > 0) (totalSpent / budget.amount).toFloat().coerceAtMost(1f) else 0f
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier.fillMaxWidth(),
-                    strokeCap = StrokeCap.Round
-                )
-            }
-            // Three dot menu for edit and delete
-            Box {
-                IconButton(onClick = { expanded = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Budget Options")
-                }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Edit") },
-                        onClick = {
-                            expanded = false
-                            onEdit()
-                        },
-                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Delete") },
-                        onClick = {
-                            expanded = false
-                            onDelete()
-                        },
-                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
-                    )
-                }
-            }
-        }
-    }
-}
-
-// Dialog for editing an existing budget
-@Composable
-fun EditBudgetDialog(budget: Budget, onDismiss: () -> Unit, onConfirm: (Budget) -> Unit) {
-    var name by remember { mutableStateOf(budget.name) }
-    var amount by remember { mutableStateOf(budget.amount.toString()) }
-    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = if (budget.endDate > 0) budget.endDate else null)
-
-    Dialog(
-        onDismissRequest = { onDismiss() },
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 0.dp,
-            modifier = Modifier
-                .padding(start = 24.dp, end = 24.dp, top = 40.dp, bottom = 120.dp)
-                .fillMaxWidth()
-                .fillMaxHeight(0.75f)
-        ) {
-            Column(modifier = Modifier.padding(24.dp)) {
-                Text("Edit Budget", style = MaterialTheme.typography.headlineSmall)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                    // Budget name input
-                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Budget Name") }, modifier = Modifier.fillMaxWidth())
-                    Spacer(modifier = Modifier.height(8.dp))
-                    // Budget amount input
-                    OutlinedTextField(
-                        value = amount,
-                        onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) amount = it },
-                        label = { Text("Limit Amount") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Set End Date", style = MaterialTheme.typography.labelLarge)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    // Date picker for end date
-                    DatePicker(
-                        state = datePickerState,
-                        showModeToggle = false,
-                        title = null,
-                        headline = null,
-                        colors = DatePickerDefaults.colors(containerColor = Color.Transparent)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = { onDismiss() }) { Text("Cancel") }
-                    TextButton(onClick = {
-                        val amt = amount.toDoubleOrNull() ?: 0.0
-                        if (name.isNotBlank() && amt > 0) {
-                            onConfirm(budget.copy(name = name, amount = amt, endDate = datePickerState.selectedDateMillis ?: 0L))
-                        }
-                    }) { Text("Save") }
-                }
-            }
-        }
-    }
-}
-
-// Dialog for adding a new budget
-@Composable
-fun AddBudgetDialog(onDismiss: () -> Unit, onConfirm: (String, Double, Long) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var amount by remember { mutableStateOf("") }
-    val datePickerState = rememberDatePickerState()
-
-    Dialog(
-        onDismissRequest = { onDismiss() },
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 0.dp,
-            modifier = Modifier
-                .padding(start = 24.dp, end = 24.dp, top = 40.dp, bottom = 120.dp)
-                .fillMaxWidth()
-                .fillMaxHeight(0.75f)
-        ) {
-            Column(modifier = Modifier.padding(24.dp)) {
-                Text("New Budget", style = MaterialTheme.typography.headlineSmall)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                    // Budget name input
-                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Budget Name") }, modifier = Modifier.fillMaxWidth())
-                    Spacer(modifier = Modifier.height(8.dp))
-                    // Budget amount input
-                    OutlinedTextField(
-                        value = amount,
-                        onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) amount = it },
-                        label = { Text("Limit Amount") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Set End Date", style = MaterialTheme.typography.labelLarge)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    // Date picker for end date
-                    DatePicker(
-                        state = datePickerState,
-                        showModeToggle = false,
-                        title = null,
-                        headline = null,
-                        colors = DatePickerDefaults.colors(containerColor = Color.Transparent)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = { onDismiss() }) { Text("Cancel") }
-                    TextButton(onClick = {
-                        val amt = amount.toDoubleOrNull() ?: 0.0
-                        if (name.isNotBlank() && amt > 0) {
-                            onConfirm(name, amt, datePickerState.selectedDateMillis ?: 0L)
-                        }
-                    }) { Text("Create") }
-                }
-            }
-        }
     }
 }
 
@@ -516,12 +189,16 @@ fun BudgetDetailView(
 
     val showEditDateDialog = remember { mutableStateOf(false) }
     val showEditAmountDialog = remember { mutableStateOf(false) }
+    val showEditorDialog = remember { mutableStateOf(false) }
+    val isPieChartVisible = remember { mutableStateOf(true) }
+    val isBarChartVisible = remember { mutableStateOf(true) }
+    var editingExpense by remember { mutableStateOf<Expense?>(null) }
+    var deleteTarget by remember { mutableStateOf<Expense?>(null) }
 
     // Filter expenses based on the selected time range
     val filteredExpenses = expenses.filter {
         val expenseTime = it.timestamp
         val now = System.currentTimeMillis()
-
         when (selectedTimeRange) {
             // Show expenses from the last 7 days
             TimeRange.ONE_WEEK -> {
@@ -562,19 +239,6 @@ fun BudgetDetailView(
         } else "Cycle starts later"
     }
 
-    // State for add/edit expense dialog
-    var dialogTitle by remember { mutableStateOf("") }
-    var dialogAmount by remember { mutableStateOf("") }
-    var dialogCategory by remember { mutableStateOf("Food") }
-    var dialogTimestamp by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    val isPieChartVisible = remember { mutableStateOf(true) }
-    val isBarChartVisible = remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf("") }
-    val editingExpense: MutableState<Expense?> = remember { mutableStateOf(null) }
-    val deleteTarget: MutableState<Expense?> = remember { mutableStateOf(null) }
-    val showEditorDialog = remember { mutableStateOf(false) }
-    val showAdvanced = remember { mutableStateOf(false) }
-
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         // Top summary card
         Card(modifier = Modifier.fillMaxWidth()) {
@@ -600,7 +264,6 @@ fun BudgetDetailView(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Show a chip for each time range option
                     TimeRange.values().forEach { range ->
                         FilterChip(
                             selected = selectedTimeRange == range,
@@ -666,13 +329,7 @@ fun BudgetDetailView(
         // Button to add a new expense
         Button(
             onClick = {
-                editingExpense.value = null
-                dialogTitle = ""
-                dialogAmount = ""
-                dialogCategory = "Food"
-                dialogTimestamp = System.currentTimeMillis()
-                errorMessage = ""
-                showAdvanced.value = false
+                editingExpense = null
                 showEditorDialog.value = true
             },
             modifier = Modifier.fillMaxWidth()
@@ -690,16 +347,10 @@ fun BudgetDetailView(
                     ExpenseRow(
                         expense = expense,
                         onEdit = {
-                            editingExpense.value = expense
-                            dialogTitle = expense.title
-                            dialogAmount = expense.amount.toString()
-                            dialogCategory = expense.category
-                            dialogTimestamp = expense.timestamp
-                            errorMessage = ""
-                            showAdvanced.value = false
+                            editingExpense = expense
                             showEditorDialog.value = true
                         },
-                        onDelete = { deleteTarget.value = expense }
+                        onDelete = { deleteTarget = expense }
                     )
                 }
             }
@@ -708,130 +359,32 @@ fun BudgetDetailView(
 
     // Add/Edit expense dialog
     if (showEditorDialog.value) {
-        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dialogTimestamp)
-        Dialog(
-            onDismissRequest = { showEditorDialog.value = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
-        ) {
-            Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp,
-                modifier = Modifier
-                    .padding(start = 24.dp, end = 24.dp, top = 40.dp, bottom = 120.dp)
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.75f)
-            ) {
-                Column(modifier = Modifier.padding(24.dp)) {
-                    Text(
-                        if (editingExpense.value == null) "Add Expense" else "Edit Expense",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                        // Title input
-                        OutlinedTextField(
-                            value = dialogTitle,
-                            onValueChange = { dialogTitle = it },
-                            label = { Text("Title") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        // Amount input
-                        OutlinedTextField(
-                            value = dialogAmount,
-                            onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) dialogAmount = it },
-                            label = { Text("Amount") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        // Category dropdown
-                        var expanded by remember { mutableStateOf(false) }
-                        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-                            OutlinedTextField(
-                                value = dialogCategory,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Category") },
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
-                            )
-                            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                                categories.forEach { category ->
-                                    DropdownMenuItem(
-                                        text = { Text(category) },
-                                        onClick = { dialogCategory = category; expanded = false }
-                                    )
-                                }
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("Select Date", style = MaterialTheme.typography.labelLarge)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        // Date picker
-                        DatePicker(
-                            state = datePickerState,
-                            showModeToggle = false,
-                            title = null,
-                            headline = null,
-                            colors = DatePickerDefaults.colors(containerColor = Color.Transparent),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        // Advanced options toggle
-                        if (showAdvanced.value) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("Show Pie Chart", style = MaterialTheme.typography.bodyLarge)
-                                Switch(
-                                    checked = isPieChartVisible.value,
-                                    onCheckedChange = { isPieChartVisible.value = it }
-                                )
-                            }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("Show Bar Chart", style = MaterialTheme.typography.bodyLarge)
-                                Switch(
-                                    checked = isBarChartVisible.value,
-                                    onCheckedChange = { isBarChartVisible.value = it }
-                                )
-                            }
-                        }
-                        // Show error if something is wrong
-                        if (errorMessage.isNotBlank()) {
-                            Text(text = errorMessage, color = MaterialTheme.colorScheme.error)
-                        }
-                        TextButton(onClick = { showAdvanced.value = !showAdvanced.value }) {
-                            Text(if (showAdvanced.value) "Hide Advanced" else "Show Advanced")
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = { showEditorDialog.value = false }) { Text("Cancel") }
-                        TextButton(onClick = {
-                            val amt = dialogAmount.toDoubleOrNull() ?: 0.0
-                            val decimalPart = dialogAmount.substringAfter(".", "")
-                            val selectedDate = datePickerState.selectedDateMillis ?: dialogTimestamp
-                            if (dialogTitle.isBlank()) errorMessage = "Please enter a title"
-                            else if (amt <= 0) errorMessage = "Please enter a valid amount"
-                            else if (dialogAmount.contains(".") && decimalPart.length > 2) errorMessage = "Max 2 decimal places"
-                            else {
-                                if (editingExpense.value == null) onAddExpense(dialogTitle, amt, dialogCategory, budget.id, selectedDate)
-                                else onUpdateExpense(editingExpense.value!!.copy(title = dialogTitle, amount = amt, category = dialogCategory, timestamp = selectedDate))
-                                showEditorDialog.value = false
-                            }
-                        }) { Text("Save") }
-                    }
+        ExpenseEditorDialog(
+            editingExpense = editingExpense,
+            budgetId = budget.id,
+            isPieChartVisible = isPieChartVisible,
+            isBarChartVisible = isBarChartVisible,
+            onDismiss = { showEditorDialog.value = false },
+            onSave = { title, amount, category, timestamp ->
+                if (editingExpense == null) {
+                    onAddExpense(title, amount, category, budget.id, timestamp)
+                } else {
+                    onUpdateExpense(editingExpense!!.copy(title = title, amount = amount, category = category, timestamp = timestamp))
                 }
             }
-        }
+        )
+    }
+
+    // Delete expense confirmation dialog
+    if (deleteTarget != null) {
+        DeleteExpenseDialog(
+            expenseTitle = deleteTarget!!.title,
+            onDismiss = { deleteTarget = null },
+            onConfirm = {
+                onDeleteExpense(deleteTarget!!)
+                deleteTarget = null
+            }
+        )
     }
 
     // Dialog to edit the budget end date
@@ -859,7 +412,6 @@ fun BudgetDetailView(
                 Column(modifier = Modifier.padding(24.dp)) {
                     Text("Set Budget End Date", style = MaterialTheme.typography.headlineSmall)
                     Spacer(modifier = Modifier.height(16.dp))
-
                     Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                         Text("Choose when this budget ends to track days left.", style = MaterialTheme.typography.bodyMedium)
                         Spacer(modifier = Modifier.height(8.dp))
@@ -872,7 +424,6 @@ fun BudgetDetailView(
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
-
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { showEditDateDialog.value = false }) { Text("Cancel") }
@@ -901,7 +452,6 @@ fun BudgetDetailView(
                     value = amountText,
                     onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) amountText = it },
                     label = { Text("Limit Amount") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
             },
@@ -916,24 +466,6 @@ fun BudgetDetailView(
             },
             dismissButton = {
                 TextButton(onClick = { showEditAmountDialog.value = false }) { Text("Cancel") }
-            }
-        )
-    }
-
-    // Delete expense confirmation dialog
-    if (deleteTarget.value != null) {
-        AlertDialog(
-            onDismissRequest = { deleteTarget.value = null },
-            title = { Text("Delete Expense") },
-            text = { Text("Are you sure you want to delete ${deleteTarget.value?.title}?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    onDeleteExpense(deleteTarget.value!!)
-                    deleteTarget.value = null
-                }) { Text("Delete") }
-            },
-            dismissButton = {
-                TextButton(onClick = { deleteTarget.value = null }) { Text("Cancel") }
             }
         )
     }
