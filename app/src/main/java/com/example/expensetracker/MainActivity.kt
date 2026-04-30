@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.expensetracker.ui.expense.ChangePasswordDialog
 import com.example.expensetracker.ui.theme.ExpenseTrackerTheme
 import com.example.expensetracker.viewmodel.AuthViewModel
 import com.example.expensetracker.viewmodel.ExpenseViewModel
@@ -60,6 +61,9 @@ class MainActivity : ComponentActivity() {
 
                 // Tracks which screen to show
                 var showCreateAccount by remember { mutableStateOf(false) }
+
+                // Tracks if change password dialog is showing
+                var showChangePassword by remember { mutableStateOf(false) }
 
                 // If not logged in show login or create account screen
                 if (!authViewModel.isLoggedIn) {
@@ -98,6 +102,18 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    // Show change password dialog if needed
+                    if (showChangePassword) {
+                        ChangePasswordDialog(
+                            authViewModel = authViewModel,
+                            onDismiss = {
+                                showChangePassword = false
+                                authViewModel.errorMessage = ""
+                                authViewModel.passwordChangeSuccess = false
+                            }
+                        )
+                    }
+
                     Scaffold(
                         topBar = {
                             TopAppBar(
@@ -116,7 +132,8 @@ class MainActivity : ComponentActivity() {
                                     SettingsMenu(
                                         isDarkMode = themeViewModel.isDarkMode,
                                         onToggleDarkMode = { themeViewModel.toggleTheme() },
-                                        onLogout = { authViewModel.logout() }
+                                        onLogout = { authViewModel.logout() },
+                                        onChangePassword = { showChangePassword = true }
                                     )
                                 }
                             )
@@ -160,7 +177,8 @@ class MainActivity : ComponentActivity() {
 fun SettingsMenu(
     isDarkMode: Boolean,
     onToggleDarkMode: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onChangePassword: () -> Unit // called when user clicks change password
 ) {
     // Tracks if the menu is open or closed
     var expanded by remember { mutableStateOf(false) }
@@ -193,6 +211,14 @@ fun SettingsMenu(
                     }
                 },
                 onClick = { }
+            )
+            // Change password button
+            DropdownMenuItem(
+                text = { Text("Change Password") },
+                onClick = {
+                    expanded = false
+                    onChangePassword()
+                }
             )
             // Logout button
             DropdownMenuItem(

@@ -25,6 +25,9 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     // Shows error messages on screen
     var errorMessage by mutableStateOf("")
 
+    // Tracks if password was changed successfully
+    var passwordChangeSuccess by mutableStateOf(false)
+
     // Called when user tries to login
     fun login(username: String, password: String) {
         viewModelScope.launch {
@@ -57,10 +60,38 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // Called when user wants to change their password
+    fun changePassword(oldPassword: String, newPassword: String) {
+        viewModelScope.launch {
+            // First check if the old password is correct
+            val user = userDao.login(
+                userDao.getUserByUsername(
+                    userDao.getUserByUsername("")?.username ?: ""
+                )?.username ?: "", oldPassword
+            )
+            // Get the current user by their id
+            val currentUser = userDao.getUserById(currentUserId)
+            if (currentUser != null) {
+                // Check if old password matches
+                val validUser = userDao.login(currentUser.username, oldPassword)
+                if (validUser != null) {
+                    // Update the password in the database
+                    userDao.changePassword(currentUserId, newPassword)
+                    passwordChangeSuccess = true
+                    errorMessage = ""
+                } else {
+                    errorMessage = "Current password is incorrect"
+                    passwordChangeSuccess = false
+                }
+            }
+        }
+    }
+
     // Logs the user out and resets everything
     fun logout() {
         isLoggedIn = false
         currentUserId = 0
         errorMessage = ""
+        passwordChangeSuccess = false
     }
 }
